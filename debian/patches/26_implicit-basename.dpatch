@@ -1,0 +1,18 @@
+#! /bin/sh /usr/share/dpatch/dpatch-run
+## 26-implicit-basename.dpatch by  <seanius@localhost.localdomain>
+##
+## All lines beginning with `## DP:' are a description of the patch.
+## DP: No description.
+
+@DPATCH@
+diff -urNad nagios-plugins-1.4.4~/plugins/check_procs.c nagios-plugins-1.4.4/plugins/check_procs.c
+--- nagios-plugins-1.4.4~/plugins/check_procs.c	2006-10-19 02:25:16.000000000 +0200
++++ nagios-plugins-1.4.4/plugins/check_procs.c	2006-11-17 09:26:57.000000000 +0100
+@@ -45,6 +45,7 @@
+ #include "utils.h"
+ 
+ #include <pwd.h>
++#include <dirname.h>
+ 
+ int process_arguments (int, char **);
+ int validate_arguments (void);

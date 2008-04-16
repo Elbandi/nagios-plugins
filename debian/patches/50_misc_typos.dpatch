@@ -1,0 +1,232 @@
+#! /bin/sh /usr/share/dpatch/dpatch-run
+## 50_misc_typos.dpatch by  <andy@andrewprice.me.uk> modified for 1.4.10 by 
+## Jan Wagner <waja@cyconet.org>
+##
+## All lines beginning with `## DP:' are a description of the patch.
+## DP: This patch fixes various typos and grammatical errors in plugins/*.c.
+## DP: It is based on Malcolm Parsons' patch posted at https://launchpad.net/bugs/64595
+
+@DPATCH@
+diff -Nur nagios-plugins-1.4.10.orig/plugins/check_dns.c nagios-plugins-1.4.10/plugins/check_dns.c
+--- nagios-plugins-1.4.10.orig/plugins/check_dns.c	2007-01-28 22:46:41.000000000 +0100
++++ nagios-plugins-1.4.10/plugins/check_dns.c	2007-12-06 14:17:22.000000000 +0100
+@@ -218,7 +218,7 @@
+     printf (_("DNS CRITICAL - %s\n"),
+             !strcmp (msg, "") ? _(" Probably a non-existent host/domain") : msg);
+   else
+-    printf (_("DNS UNKNOW - %s\n"),
++    printf (_("DNS UNKNOWN - %s\n"),
+             !strcmp (msg, "") ? _(" Probably a non-existent host/domain") : msg);
+ 
+   return result;
+diff -Nur nagios-plugins-1.4.10.orig/plugins/check_http.c nagios-plugins-1.4.10/plugins/check_http.c
+--- nagios-plugins-1.4.10.orig/plugins/check_http.c	2007-07-21 18:29:01.000000000 +0200
++++ nagios-plugins-1.4.10/plugins/check_http.c	2007-12-06 14:18:47.000000000 +0100
+@@ -1089,7 +1089,7 @@
+   
+   url = malloc (strcspn (pos, "\r\n"));
+   if (url == NULL)
+-    die (STATE_UNKNOWN, _("HTTP UNKNOWN - Could not allocate url\n"));
++    die (STATE_UNKNOWN, _("HTTP UNKNOWN - Could not allocate URL\n"));
+ 
+   while (pos) {
+     sscanf (pos, "%[Ll]%*[Oo]%*[Cc]%*[Aa]%*[Tt]%*[Ii]%*[Oo]%*[Nn]:%n", xx, &i);
+@@ -1120,7 +1120,7 @@
+ 
+     url = realloc (url, strcspn (pos, "\r\n") + 1);
+     if (url == NULL)
+-      die (STATE_UNKNOWN, _("HTTP UNKNOWN - could not allocate url\n"));
++      die (STATE_UNKNOWN, _("HTTP UNKNOWN - Could not allocate URL\n"));
+ 
+     /* URI_HTTP, URI_HOST, URI_PORT, URI_PATH */
+     if (sscanf (pos, HD1, type, addr, &i, url) == 4)
+@@ -1287,7 +1287,7 @@
+   printf ("   %s\n", _("Connect via SSL. Port defaults to 443"));
+   printf (" %s\n", "-C, --certificate=INTEGER");
+   printf ("   %s\n", _("Minimum number of days a certificate has to be valid. Port defaults to 443"));
+-  printf ("   %s\n", _("(when this option is used the url is not checked.)\n"));
++  printf ("   %s\n", _("(when this option is used the URL is not checked.)\n"));
+ #endif
+ 
+   printf (" %s\n", "-e, --expect=STRING");
+diff -Nur nagios-plugins-1.4.10.orig/plugins/check_ldap.c nagios-plugins-1.4.10/plugins/check_ldap.c
+--- nagios-plugins-1.4.10.orig/plugins/check_ldap.c	2007-07-08 00:20:40.000000000 +0200
++++ nagios-plugins-1.4.10/plugins/check_ldap.c	2007-12-06 14:19:23.000000000 +0100
+@@ -191,7 +191,7 @@
+ 			LDAP_SUCCESS) {
+ 		if (verbose)
+ 			ldap_perror(ld, "ldap_bind");
+-		printf (_("Could not bind to the ldap-server\n"));
++		printf (_("Could not bind to the LDAP server\n"));
+ 		return STATE_CRITICAL;
+ 	}
+ 
+diff -Nur nagios-plugins-1.4.10.orig/plugins/check_mysql.c nagios-plugins-1.4.10/plugins/check_mysql.c
+--- nagios-plugins-1.4.10.orig/plugins/check_mysql.c	2007-03-29 19:58:28.000000000 +0200
++++ nagios-plugins-1.4.10/plugins/check_mysql.c	2007-12-06 14:19:57.000000000 +0100
+@@ -370,7 +370,7 @@
+ 
+ 	printf (_(COPYRIGHT), copyright, email);
+ 
+-	printf ("%s\n", _("This program tests connections to a mysql server"));
++	printf ("%s\n", _("This program tests connections to a MySQL server"));
+ 
+   printf ("\n\n");
+   
+diff -Nur nagios-plugins-1.4.10.orig/plugins/check_procs.c nagios-plugins-1.4.10/plugins/check_procs.c
+--- nagios-plugins-1.4.10.orig/plugins/check_procs.c	2007-07-15 17:21:51.000000000 +0200
++++ nagios-plugins-1.4.10/plugins/check_procs.c	2007-12-06 14:22:31.000000000 +0100
+@@ -690,7 +690,7 @@
+   printf ("  %s\n", _("PROCS   - number of processes (default)"));
+   printf ("  %s\n", _("VSZ     - virtual memory size"));
+   printf ("  %s\n", _("RSS     - resident set memory size"));
+-  printf ("  %s\n", _("CPU     - percentage cpu"));
++  printf ("  %s\n", _("CPU     - percentage CPU"));
+ /* only linux etime is support currently */
+ #if defined( __linux__ )
+ 	printf ("  %s\n", _("ELAPSED - time elapsed in seconds"));
+@@ -708,11 +708,11 @@
+   printf (" %s\n", "-p, --ppid=PPID");
+   printf ("   %s\n", _("Only scan for children of the parent process ID indicated."));
+   printf (" %s\n", "-z, --vsz=VSZ");
+-  printf ("   %s\n", _("Only scan for processes with vsz higher than indicated."));
++  printf ("   %s\n", _("Only scan for processes with VSZ higher than indicated."));
+   printf (" %s\n", "-r, --rss=RSS");
+-  printf ("   %s\n", _("Only scan for processes with rss higher than indicated."));
++  printf ("   %s\n", _("Only scan for processes with RSS higher than indicated."));
+ 	printf (" %s\n", "-P, --pcpu=PCPU");
+-  printf ("   %s\n", _("Only scan for processes with pcpu higher than indicated."));
++  printf ("   %s\n", _("Only scan for processes with PCPU higher than indicated."));
+   printf (" %s\n", "-u, --user=USER");
+   printf ("   %s\n", _("Only scan for processes with user name or ID indicated."));
+   printf (" %s\n", "-a, --argument-array=STRING");
+@@ -740,9 +740,9 @@
+   printf ("  %s\n", _("Warning alert if > 10 processes with command arguments containing"));
+   printf ("  %s\n\n", _("'/usr/local/bin/perl' and owned by root"));
+   printf (" %s\n", "check_procs -w 50000 -c 100000 --metric=VSZ");
+-  printf ("  %s\n\n", _("Alert if vsz of any processes over 50K or 100K"));
++  printf ("  %s\n\n", _("Alert if VSZ of any processes over 50K or 100K"));
+   printf (" %s\n", "check_procs -w 10 -c 20 --metric=CPU");
+-  printf ("  %s\n\n", _("Alert if cpu of any processes over 10%% or 20%%"));
++  printf ("  %s\n\n", _("Alert if CPU of any processes over 10%% or 20%%"));
+ 
+ 	printf (_(UT_SUPPORT));
+ }
+diff -Nur nagios-plugins-1.4.10.orig/plugins/check_radius.c nagios-plugins-1.4.10/plugins/check_radius.c
+--- nagios-plugins-1.4.10.orig/plugins/check_radius.c	2007-09-26 12:57:44.000000000 +0200
++++ nagios-plugins-1.4.10/plugins/check_radius.c	2007-12-06 14:24:05.000000000 +0100
+@@ -311,7 +311,7 @@
+ 	printf ("Copyright (c) 1999 Robert August Vincent II\n");
+ 	printf (COPYRIGHT, copyright, email);
+ 
+-	printf("%s\n", _("Tests to see if a radius server is accepting connections."));
++	printf("%s\n", _("Tests to see if a RADIUS server is accepting connections."));
+ 
+   printf ("\n\n");
+ 
+@@ -336,16 +336,16 @@
+ 
+ 	printf (_(UT_TIMEOUT), timeout_interval);
+ 
+-	printf ("%s\n", _("This plugin tests a radius server to see if it is accepting connections."));
++	printf ("%s\n", _("This plugin tests a RADIUS server to see if it is accepting connections."));
+   printf ("%s\n", _("The server to test must be specified in the invocation, as well as a user"));
+   printf ("%s\n", _("name and password. A configuration file may also be present. The format of"));
+   printf ("%s\n", _("the configuration file is described in the radiusclient library sources."));
+ 	printf ("%s\n", _("The password option presents a substantial security issue because the"));
+   printf ("%s\n", _("password can be determined by careful watching of the command line in"));
+   printf ("%s\n", _("a process listing.  This risk is exacerbated because nagios will"));
+-  printf ("%s\n", _("run the plugin at regular prdictable intervals.  Please be sure that"));
++  printf ("%s\n", _("run the plugin at regular predictable intervals.  Please be sure that"));
+   printf ("%s\n", _("the password used does not allow access to sensitive system resources,"));
+-  printf ("%s\n", _("otherwise compormise could occur."));
++  printf ("%s\n", _("otherwise compromise could occur."));
+ 
+ 	printf (_(UT_SUPPORT));
+ }
+diff -Nur nagios-plugins-1.4.10.orig/plugins/check_snmp.c nagios-plugins-1.4.10/plugins/check_snmp.c
+--- nagios-plugins-1.4.10.orig/plugins/check_snmp.c	2007-05-29 07:22:32.000000000 +0200
++++ nagios-plugins-1.4.10/plugins/check_snmp.c	2007-12-06 14:25:18.000000000 +0100
+@@ -917,7 +917,7 @@
+ 
+ 	printf (COPYRIGHT, copyright, email);
+ 
+-	printf ("%s\n", _("Check status of remote machines and obtain sustem information via SNMP"));
++	printf ("%s\n", _("Check status of remote machines and obtain system information via SNMP"));
+ 
+   printf ("\n\n");
+ 
+@@ -952,8 +952,8 @@
+ 	printf (" %s\n", "-o, --oid=OID(s)");
+   printf ("    %s\n", _("Object identifier(s) or SNMP variables whose value you wish to query"));
+   printf (" %s\n", "-m, --miblist=STRING");
+-  printf ("    %s\n", _("List of MIBS to be loaded (default = none if using numeric oids or 'ALL'"));
+-  printf ("    %s\n", _("for symbolic oids.)"));
++  printf ("    %s\n", _("List of MIBS to be loaded (default = none if using numeric OIDs or 'ALL'"));
++  printf ("    %s\n", _("for symbolic OIDs.)"));
+   printf (" %s\n", "-d, --delimiter=STRING");
+   printf (_("    Delimiter to use when parsing returned data. Default is \"%s\""), DEFAULT_DELIMITER);
+   printf ("    %s\n", _("Any data on the right hand side of the delimiter is considered"));
+diff -Nur nagios-plugins-1.4.10.orig/plugins/check_tcp.c nagios-plugins-1.4.10/plugins/check_tcp.c
+--- nagios-plugins-1.4.10.orig/plugins/check_tcp.c	2007-06-03 16:40:13.000000000 +0200
++++ nagios-plugins-1.4.10/plugins/check_tcp.c	2007-12-06 14:25:56.000000000 +0100
+@@ -621,7 +621,7 @@
+   printf (" %s\n", "-q, --quit=STRING");
+   printf ("    %s\n", _("String to send server to initiate a clean close of the connection"));
+   printf (" %s\n", "-r, --refuse=ok|warn|crit");
+-  printf ("    %s\n", _("Accept tcp refusals with states ok, warn, crit (default: crit)"));
++  printf ("    %s\n", _("Accept TCP refusals with states ok, warn, crit (default: crit)"));
+   printf (" %s\n", "-M, --mismatch=ok|warn|crit");
+   printf ("    %s\n", _("Accept expected string mismatches with states ok, warn, crit (default: warn)"));
+   printf (" %s\n", "-j, --jail");
+diff -Nur nagios-plugins-1.4.10.orig/plugins/check_ups.c nagios-plugins-1.4.10/plugins/check_ups.c
+--- nagios-plugins-1.4.10.orig/plugins/check_ups.c	2007-05-09 11:16:33.000000000 +0200
++++ nagios-plugins-1.4.10/plugins/check_ups.c	2007-12-06 14:27:26.000000000 +0100
+@@ -416,7 +416,7 @@
+ 	len = strlen(ptr);
+ 	if (len > 0 && ptr[len-1] == '\n') ptr[len-1]=0;
+ 	if (strcmp (ptr, "ERR UNKNOWN-UPS") == 0) {
+-		printf (_("CRITICAL - no such ups '%s' on that host\n"), ups_name);
++		printf (_("CRITICAL - no such UPS '%s' on that host\n"), ups_name);
+ 		return ERROR;
+ 	}
+ 
+@@ -583,7 +583,7 @@
+ validate_arguments (void)
+ {
+ 	if (! ups_name) {
+-		printf ("%s\n", _("Error : no ups indicated"));
++		printf ("%s\n", _("Error : no UPS indicated"));
+ 		return ERROR;
+ 	}
+ 	return OK;
+@@ -635,7 +635,7 @@
+ 	printf ("%s\n", _("This plugin attempts to determine the status of a UPS (Uninterruptible Power"));
+   printf ("%s\n", _("Supply) on a local or remote host. If the UPS is online or calibrating, the"));
+   printf ("%s\n", _("plugin will return an OK state. If the battery is on it will return a WARNING"));
+-  printf ("%s\n", _("state.If the UPS is off or has a low battery the plugin will return a CRITICAL"));
++  printf ("%s\n", _("state. If the UPS is off or has a low battery the plugin will return a CRITICAL"));
+   printf ("%s\n\n", _("state."));
+ 
+ 	printf ("%s\n", _("You may also specify a variable to check [such as temperature, utility voltage,"));
+@@ -643,7 +643,7 @@
+   printf ("%s\n", _("that variable.  If the remote host has multiple UPS that are being monitored you"));
+   printf ("%s\n", _("will have to use the [ups] option to specify which UPS to check."));
+ 
+-	printf ("%s\n", _("This plugin requires that the UPSD daemon distributed with Russel Kroll's"));
++	printf ("%s\n", _("This plugin requires that the UPSD daemon distributed with Russell Kroll's"));
+   printf ("%s\n", _("Smart UPS Tools be installed on the remote host.  If you do not have the"));
+   printf ("%s\n", _("package installed on your system, you can download it from http://www.networkupstools.org"));
+ 
+diff -Nur nagios-plugins-1.4.10.orig/plugins-scripts/check_mailq.pl nagios-plugins-1.4.10/plugins-scripts/check_mailq.pl
+--- nagios-plugins-1.4.10.orig/plugins-scripts/check_mailq.pl	2006-07-05 15:45:57.000000000 +0200
++++ nagios-plugins-1.4.10/plugins-scripts/check_mailq.pl	2007-12-10 01:18:51.803913108 +0100
+@@ -588,7 +588,7 @@
+ 	print "   Checks the number of messages in the mail queue (supports multiple sendmail queues, qmail)\n";
+ 	print "   Feedback/patches to support non-sendmail mailqueue welcome\n\n";
+ 	print "-w (--warning)   = Min. number of messages in queue to generate warning\n";
+-	print "-c (--critical)  = Min. number of messages in queu to generate critical alert ( w < c )\n";
++	print "-c (--critical)  = Min. number of messages in queue to generate critical alert ( w < c )\n";
+ 	print "-W (--Warning)   = Min. number of messages for same domain in queue to generate warning\n";
+ 	print "-C (--Critical)  = Min. number of messages for same domain in queue to generate critical alert ( W < C )\n";
+ 	print "-t (--timeout)   = Plugin timeout in seconds (default = $utils::TIMEOUT)\n";

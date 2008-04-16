@@ -1,0 +1,101 @@
+Source: nagios-plugins
+Section: net
+Priority: extra
+Maintainer: Ubuntu Core Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+XSBC-Original-Maintainer: Debian Nagios Maintainer Group <pkg-nagios-devel@lists.alioth.debian.org>
+Uploaders: Sean Finney <seanius@debian.org>, Guido Trotter <ultrotter@debian.org>, Jan Wagner <waja@cyconet.org>
+Build-Depends: debhelper (>= 4.0.0), dpatch (>= 2.0.9), autotools-dev, libldap2-dev, libpq-dev | postgresql-dev, libmysqlclient15-dev | libmysqlclient12-dev | libmysqlclient-dev, libradius1-dev, libkrb5-dev, libnet-snmp-perl, procps, coreutils, mawk | awk
+Homepage: http://nagiosplug.sourceforge.net
+Vcs-Browser: http://svn.debian.org/wsvn/pkg-nagios/nagios-plugins/
+Vcs-Svn: svn://svn.debian.org/pkg-nagios/nagios-plugins/
+Standards-Version: 3.7.3
+
+Package: nagios-plugins
+Architecture: all
+Depends: nagios-plugins-basic, nagios-plugins-standard, nagios-plugins-extra
+Suggests: nagios2 | nagios-text | nagios
+Description: Plugins for the nagios network monitoring and management system
+ Nagios is a host/service/network monitoring and management system. It has
+ the following features:
+ .
+  *  Monitoring of network services (via TCP port, SMTP, POP3, HTTP, NNTP,
+     PING, etc.)
+  *  Plugin interface to allow for user-developed service checks
+  *  Contact notifications when problems occur and get resolved (via email,
+     pager, or user-defined method)
+  *  Ability to define event handlers to be run during service or host events
+     (for proactive problem resolution)
+  *  Web output (current status, notifications, history, log file, etc.)
+ .
+ This meta-package will install the entire suite of plugins for nagios.
+ If you are installing nagios plugins on a remote "satellite" server
+ (using nagios-nrpe-server or nsca), you may be interested in the
+ nagios-plugins-basic package.
+
+Package: nagios-plugins-basic
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}, procps, iputils-ping, ucf
+Conflicts: nagios-plugins (<= 1.4.2-3), nagios-plugins-extra (<= 1.3.1.0)
+Replaces: nagios-plugins, nagios-plugins-standard, nagios-plugins-extra (<= 1.3.1.0)
+Suggests: nagios2 | nagios-text | nagios
+Description: Plugins for the nagios network monitoring and management system
+ Nagios is a host/service/network monitoring and management system. It has
+ the following features:
+ .
+  *  Monitoring of network services (via TCP port, SMTP, POP3, HTTP, NNTP,
+     PING, etc.)
+  *  Plugin interface to allow for user-developed service checks
+  *  Contact notifications when problems occur and get resolved (via email,
+     pager, or user-defined method)
+  *  Ability to define event handlers to be run during service or host events
+     (for proactive problem resolution)
+  *  Web output (current status, notifications, history, log file, etc.)
+ .
+ This package provides a basic set of plugins with minimal external
+ dependencies.  It is not likely to be useful by itself unless you are
+ installing a remote "satellite" server (using nagios-nrpe-server or nsca,
+ for example).
+
+Package: nagios-plugins-standard
+Architecture: any
+Conflicts: nagios-plugins (<= 1.4.2-3)
+Replaces: nagios-plugins
+Depends: ${shlibs:Depends}, ${misc:Depends}, snmp, radiusclient1, libnet-snmp-perl, dnsutils, bind9-host | host, smbclient, ucf, nagios-plugins-basic (>= 1.4.5-2)
+Suggests: nagios2 | nagios-text | nagios, whois
+Description: Plugins for the nagios network monitoring and management system
+ Nagios is a host/service/network monitoring and management system. It has
+ the following features:
+ .
+  *  Monitoring of network services (via TCP port, SMTP, POP3, HTTP, NNTP,
+     PING, etc.)
+  *  Plugin interface to allow for user-developed service checks
+  *  Contact notifications when problems occur and get resolved (via email,
+     pager, or user-defined method)
+  *  Ability to define event handlers to be run during service or host events
+     (for proactive problem resolution)
+  *  Web output (current status, notifications, history, log file, etc.)
+ .
+ This package provides the suite of plugins that are most likely to be
+ useful on a central nagios host.
+
+Package: nagios-plugins-extra
+Architecture: any
+Conflicts: nagios-plugins (<= 1.4.2-3)
+Replaces: nagios-plugins, nagios-plugins-standard ( <= 1.4.8-2)
+Depends: ${shlibs:Depends}, ${misc:Depends}, fping, qstat, ucf, nagios-plugins-basic (>= 1.4.5-2)
+Suggests: nagios2 | nagios-text | nagios
+Description: Plugins for the nagios network monitoring and manegement system.
+ Nagios is a host/service/network monitoring and management system. It has
+ the following features:
+ .
+  o  Monitoring of network services (via TCP port, SMTP, POP3, HTTP, NNTP,
+     PING, etc.)
+  o  Plugin interface to allow for user-developed service checks
+  o  Contact notifications when problems occur and get resolved (via email,
+     pager, or user-defined method)
+  o  Ability to define event handlers to be run during service or host events
+     (for proactive problem resolution)
+  o  Web output (current status, notifications, history, log file, etc.)
+ .
+ This package provides the suite of plugins that provide extra functionality
+ to be useful on a central nagios host.

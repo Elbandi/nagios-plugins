@@ -1,0 +1,207 @@
+#!/usr/bin/make -f
+# -*- makefile -*-
+# Sample debian/rules that uses debhelper.
+# GNU copyright 1997 to 1999 by Joey Hess.
+
+# Uncomment this to turn on verbose mode.
+#export DH_VERBOSE=1
+
+PACKAGE = nagios-plugins
+
+include /usr/share/dpatch/dpatch.make
+
+# These are used for cross-compiling and for saving the configure script
+# from having to guess our platform (since we know it already)
+DEB_HOST_GNU_TYPE   ?= $(shell dpkg-architecture -qDEB_HOST_GNU_TYPE)
+DEB_BUILD_GNU_TYPE  ?= $(shell dpkg-architecture -qDEB_BUILD_GNU_TYPE)
+
+CFLAGS = -Wall -g
+
+DEBIANDIR=$(CURDIR)/debian
+NP_LIBEXEC:=/usr/lib/nagios/plugins
+NP_BASIC_DIR:=$(DEBIANDIR)/nagios-plugins-basic
+NP_BASIC_TEMPLATES:=$(NP_BASIC_DIR)/usr/share/nagios-plugins/templates-basic
+NP_STD_DIR:=$(DEBIANDIR)/nagios-plugins-standard
+NP_STD_TEMPLATES:=$(NP_STD_DIR)/usr/share/nagios-plugins/templates-standard
+NP_EXTRAS_DIR:=$(DEBIANDIR)/nagios-plugins-extra
+NP_EXTRA_TEMPLATES:=$(NP_STD_DIR)/usr/share/nagios-plugins/templates-extras
+
+std_plugins:=check_breeze check_ifoperstatus check_hpjd check_ifstatus \
+	check_rpc check_snmp check_wave \
+	check_radius check_mysql check_mysql_query check_pgsql \
+	check_disk_smb check_ldap check_ldaps \
+	check_dns check_dig check_flexlm check_oracle
+extra_plugins:=check_fping check_game
+basic_plugin_cfgs:=apt dhcp disk dummy ftp http load mail news ntp ping procs \
+	real ssh tcp_udp telnet users
+std_plugin_cfgs:=breeze disk-smb dns flexlm hppjd ifstatus ldap \
+	mrtg mysql netware nt pgsql radius rpc-nfs snmp vsz
+extra_plugins_cfgs:=fping games
+
+PATH = /bin:/sbin:/usr/bin:/usr/sbin
+
+
+ifneq (,$(findstring noopt,$(DEB_BUILD_OPTIONS)))
+	CFLAGS += -O0
+else
+	CFLAGS += -O2
+endif
+ifeq (,$(findstring nostrip,$(DEB_BUILD_OPTIONS)))
+	INSTALL_PROGRAM += -s
+endif
+
+config.status: configure
+	export PATH=$(PATH)
+	dh_testdir
+	
+	# if /proc is not mounted, check_nagios and check_procs are
+	# silently omitted from build.
+	@if ! [ -d /proc/1 ]; then \
+	  echo "nagios-plugins needs a mounted /proc to correctly build"; \
+	  exit 1; \
+	fi
+	
+	ln -sf /usr/share/misc/config.sub build-aux
+	ln -sf /usr/share/misc/config.guess build-aux
+	rm -f config.cache
+	
+	# Add here commands to configure the package.
+	PGINCLUDE="-I`pg_config --includedir`" PGLIBS="-lpq -lcrypt" \
+	CFLAGS="$(CFLAGS)" \
+	./configure \
+		--host=$(DEB_HOST_GNU_TYPE) \
+		--build=$(DEB_BUILD_GNU_TYPE) \
+		--prefix=/usr \
+		--mandir=/usr/share/man \
+		--infodir=/usr/share/info \
+		--libexecdir=${NP_LIBEXEC} \
+		--with-perl=/usr/bin/perl \
+		--with-openssl=/usr \
+		--with-pgsql=/usr \
+		--with-mysql=/usr \
+		--with-proc-loadavg=/proc/loadavg \
+		--with-ps-command="/bin/ps axwo 'stat uid pid ppid vsz rss pcpu comm args'" \
+		--with-ps-format="%s %d %d %d %d %d %f %s %n" \
+		--with-ps-cols=9 \
+		--with-ps-varlist="procstat,&procuid,&procpid,&procppid,&procvsz,&procrss,&procpcpu,procprog,&pos" \
+		--with-ping-command="/bin/ping -n -U -w %d -c %d %s" \
+		--with-ping6-command="/bin/ping6 -n -U -w %d -c %d %s" \
+		--with-nslookup-command="/usr/bin/nslookup -sil" \
+		--with-uptime-command="/usr/bin/uptime" \
+		--with-rpcinfo-command="/usr/bin/rpcinfo" \
+		--with-smbclient-command="/usr/bin/smbclient" \
+		--with-snmpget-command="/usr/bin/snmpget" \
+		--with-snmpgetnext-command="/usr/bin/snmpgetnext" \
+		--with-qstat-command="/usr/bin/quakestat" \
+		--with-fping-command="/usr/bin/fping" \
+		--with-ssh-command="/usr/bin/ssh" \
+		--with-mailq-command="/usr/bin/mailq" \
+		--with-proc-meminfo="/proc/meminfo" \
+		--with-dig-command="/usr/bin/dig" \
+		--with-apt-get-command="/usr/bin/apt-get" \
+		--disable-rpath
+
+
+build: patch-stamp build-stamp
+
+build-stamp:  config.status
+	dh_testdir
+	$(MAKE)
+	touch build-stamp
+
+clean: really-clean unpatch
+
+really-clean:
+	dh_testdir
+	dh_testroot
+	rm -f build-stamp 
+
+	# Add here commands to clean up after the build process.
+	[ ! -f Makefile ] || $(MAKE) distclean
+	find -type d -name autom4te.cache -print0 | xargs -0 -r rm -rf \;
+	-rm -f platform.h auto-include.h
+	find -type d -name build -print0 | xargs -0 -r rm -rf \;
+	find \( -name config.sub -o -name config.guess \) -print0 | xargs -0 -r rm -f \;
+	-rm -f $(DEBIANDIR)/nagios-plugins-basic.postrm $(DEBIANDIR)/nagios-plugins-standard.postrm $(DEBIANDIR)/nagios-plugins-extras.postrm
+	dh_clean 
+
+install: build
+	dh_testdir
+	dh_testroot
+	dh_clean -k 
+	dh_installdirs
+
+	# Add here commands to install the package into debian/nagios-plugins.
+	$(MAKE) install DESTDIR=${NP_BASIC_DIR}
+	chmod 644 ${NP_BASIC_DIR}/usr/lib/nagios/plugins/utils.pm
+	# split up basic vs. standard vs extras plugins
+	for p in ${std_plugins}; do \
+		mv ${NP_BASIC_DIR}/${NP_LIBEXEC}/$$p ${NP_STD_DIR}/${NP_LIBEXEC}; \
+	done
+	for p in ${extra_plugins}; do \
+		mv ${NP_BASIC_DIR}/${NP_LIBEXEC}/$$p ${NP_EXTRAS_DIR}/${NP_LIBEXEC}; \
+	done
+	# now do the same for their configs, copying them into seperate
+	# "template" directories outside of /usr/share/doc for ucf to use.
+	for c in ${basic_plugin_cfgs}; do \
+		cp $(DEBIANDIR)/pluginconfig/$${c}.cfg ${NP_BASIC_TEMPLATES}; \
+	done
+	for c in ${std_plugin_cfgs}; do \
+		cp $(DEBIANDIR)/pluginconfig/$${c}.cfg ${NP_STD_TEMPLATES}; \
+	done
+	for c in ${extra_plugins_cfgs}; do \
+		cp $(DEBIANDIR)/pluginconfig/$${c}.cfg ${NP_EXTRA_TEMPLATES}; \
+	done
+
+	# install check_bgpstate from contrib
+	install -m 755 contrib/check_bgpstate.pl ${NP_STD_DIR}/${NP_LIBEXEC}/check_bgpstate
+	# dynamically create the postrm scripts using a template, so that we
+	# don't have to define the same list of plugin configs over and over.
+	sed -e 's/@BASIC_PLUGINS@/${basic_plugin_cfgs}/' \
+		< $(DEBIANDIR)/nagios-plugins-basic.postrm.in \
+		> $(DEBIANDIR)/nagios-plugins-basic.postrm
+	sed -e 's/@STD_PLUGINS@/${std_plugin_cfgs}/' \
+		< $(DEBIANDIR)/nagios-plugins-standard.postrm.in \
+		> $(DEBIANDIR)/nagios-plugins-standard.postrm
+	# copy our dpkg-sourced functions etc into place
+	mkdir -p ${NP_BASIC_DIR}/usr/share/nagios-plugins/dpkg
+	install -t ${NP_BASIC_DIR}/usr/share/nagios-plugins/dpkg \
+		$(DEBIANDIR)/functions $(DEBIANDIR)/sarge.md5sums
+
+# Build architecture-independent files here.
+binary-indep: build install
+# We have nothing to do by default.
+
+# Build architecture-dependent files here.
+binary-arch: build install
+	dh_testdir
+	dh_testroot
+	dh_installchangelogs ChangeLog
+	dh_installdocs
+	dh_installexamples command.cfg
+#	dh_install
+#	dh_installmenu
+#	dh_installdebconf	
+#	dh_installlogrotate
+#	dh_installemacsen
+#	dh_installpam
+#	dh_installmime
+#	dh_installinit
+#	dh_installcron
+#	dh_installinfo
+	dh_installman
+#	dh_link
+	dh_strip
+	dh_compress
+	dh_fixperms -X utils.pm
+#	dh_perl
+#	dh_python
+#	dh_makeshlibs
+	dh_installdeb
+	dh_shlibdeps
+	dh_gencontrol
+	dh_md5sums
+	dh_builddeb
+
+binary: binary-indep binary-arch
+.PHONY: build clean binary-indep binary-arch binary install 

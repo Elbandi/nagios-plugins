@@ -1,0 +1,37 @@
+# functions for use by nagios plugins maintainer scripts
+
+npconfdir=/etc/nagios-plugins/config
+npdpkgdir=/usr/share/nagios-plugins/dpkg
+
+# determine whether the file is the default file shipped in sarge
+# (called as is_pristine_sarge_file foo.cfg)
+is_pristine_sarge_file(){
+	cfg="${npconfdir}/$1"
+	if [ -f "$cfg" ]; then
+		sargemd5=`grep "$cfg" ${npdpkgdir}/sarge.md5sums | cut -d' ' -f1`
+		curmd5=`md5sum "$cfg" | cut -d' ' -f1`
+		if [ "$curmd5" = "$sargemd5" ]; then return 0; fi
+	fi
+	return 1
+}
+
+# we now register all n-p config files via ucf.  this means
+# we have to do a little bit of hand-holding for sarge migrations...
+# (called as "register_cfgs $2" from postinst)
+register_cfgs(){
+		# do this in a subshell so we don't screw up cwd
+		( 
+			cd $templdir
+			for f in *cfg; do
+				dest=${npconfdir}/$f
+				# if this is a first-time install and there are
+				# existing files (i.e. upgrading from sarge),
+				# help migrate files without annoying ucf prompts
+				if [ -z "$1" ] && is_pristine_sarge_file $f; then
+					cp $f $dest
+				fi
+				ucf $f $dest
+			done 
+		);
+}
+

@@ -1,0 +1,39 @@
+================================================================================
+nagios-plugins for Debian
+================================================================================
+
+below is a collection of various bits of information that might be
+helpful to users of nagios-plugins in debian.
+
+================================================================================
+different plugin packages and how to avoid installing massive dependencies
+================================================================================
+
+if you're frustrated by all the crap being brought in by nagios-plugins (for
+example if you're installing nrpe or nsca on a remote host), try the
+nagios-plugins-basic package.
+
+================================================================================
+plugins needing root privilege
+================================================================================
+
+the check_dhcp and check_icmp plugins require root privileges to
+run, because of the low-level packet mangling that they perform.
+but, in the interest of the "safe default", these plugins will not
+be installed with the suid bit set.  there are two recommended ways
+about overriding this on your system:
+
+- set the suid bit with dpkg-statoverride:
+
+# dpkg-statoverride --update --add root nagios 4750 $plugin
+
+where $plugin is the specific plugin you want to grant such privileges.
+
+- use sudo to grant the permissions and modify your plugin config
+
+of these two, the first is recommended because it's the simplest and
+has the same effect as the second.
+
+
+ -- sean finney <seanius@debian.org>  Thu, 06 Oct 2005 04:48:16 -0400
+

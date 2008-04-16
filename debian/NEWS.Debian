@@ -1,0 +1,9 @@
+nagios-plugins (1.4.5-3) unstable; urgency=low
+
+ifstatus.cfg has changed. Now you have to provide a community in the first
+argument ($ARG1$). Description and IfIndex moved to second argument ($ARG2$).
+
+E.g.: use "check_ifstatus!public" instead of "check_ifstatus" as
+check_command!
+
+ -- Jan Wagner <waja@cyconet.org>  Thu, 11 Jan 2007 14:56:47 +0100

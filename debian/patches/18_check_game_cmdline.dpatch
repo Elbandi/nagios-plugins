@@ -1,0 +1,19 @@
+#! /bin/sh /usr/share/dpatch/dpatch-run
+## 18_check_game_cmdline.dpatch by  <seanius@debian.org>
+##
+## All lines beginning with `## DP:' are a description of the patch.
+## DP: No description.
+
+@DPATCH@
+diff -urNad nagios-plugins~/plugins/check_game.c nagios-plugins/plugins/check_game.c
+--- nagios-plugins~/plugins/check_game.c	2005-10-11 16:45:44.000000000 +0200
++++ nagios-plugins/plugins/check_game.c	2005-10-11 16:47:07.000000000 +0200
+@@ -328,7 +328,7 @@
+ print_usage (void)
+ {
+   printf (_("Usage:"));
+-  printf (" %s <game> <ip_address> [-p port] [-gf game_field] [-mf map_field] [-pf ping_field]\n", progname);
++  printf (" %s [-hvV] [-P port] [-t timeout] [-g game_field] [-m map_field] [-p ping_field] [-G game-time] [-H hostname] <game> <ip_address>\n", progname);
+ }
+ 
+ /******************************************************************************

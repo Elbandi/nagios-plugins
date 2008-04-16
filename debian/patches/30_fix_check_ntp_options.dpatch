@@ -1,0 +1,29 @@
+#! /bin/sh /usr/share/dpatch/dpatch-run
+## 30_fix_check_ntp_options.dpatch by Jan Wagner <waja@cyconet.org>
+##
+## All lines beginning with `## DP:' are a description of the patch.
+## DP: Fix options for check_ntp_time and check_ntp_peer
+
+@DPATCH@
+--- nagios-plugins-1.4.11/plugins/check_ntp_time.c.orig	2008-01-26 00:03:57.486086968 +0100
++++ nagios-plugins-1.4.11/plugins/check_ntp_time.c	2008-01-26 00:04:26.652580066 +0100
+@@ -631,7 +631,6 @@
+ print_usage(void)
+ {
+ 	printf (_("Usage:"));
+-	printf(" %s -H <host> [-w <warn>] [-c <crit>] [-W <warn>] [-C <crit>]\n", progname);
+-	printf("       [-j <warn>] [-k <crit>] [-v verbose]\n");
++	printf(" %s -H <host> [-w <warn>] [-c <crit>] [-v verbose]\n", progname);
+ }
+ 
+--- nagios-plugins-1.4.11/plugins/check_ntp_peer.c.orig	2008-01-26 00:08:50.393996604 +0100
++++ nagios-plugins-1.4.11/plugins/check_ntp_peer.c	2008-01-26 00:09:36.762190836 +0100
+@@ -642,7 +642,7 @@
+ 	printf ("    %s\n", _("Offset to result in critical status (seconds)"));
+ 	printf (" %s\n", "-W, --warning=THRESHOLD");
+ 	printf ("    %s\n", _("Warning threshold for stratum"));
+-	printf (" %s\n", "-W, --critical=THRESHOLD");
++	printf (" %s\n", "-C, --critical=THRESHOLD");
+ 	printf ("    %s\n", _("Critical threshold for stratum"));
+ 	printf (" %s\n", "-j, --warning=THRESHOLD");
+ 	printf ("    %s\n", _("Warning threshold for jitter"));

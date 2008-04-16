@@ -1,0 +1,28 @@
+
+After sarge: 
+
+- Remove the possibility to build with fileutils.
+
+- Now /usr/share/nagios/pluginconfig -> /etc/nagios-plugins/config
+  Remove the symlink af and conflict with nagios < (ver that reads from /etc)
+
+
+These are the plugins which miss .cfg files: add them if someone asks:
+
+/usr/lib/nagios/plugins/check_ups
+/usr/lib/nagios/plugins/check_mysql
+/usr/lib/nagios/plugins/check_swap
+/usr/lib/nagios/plugins/check_dig
+/usr/lib/nagios/plugins/check_breeze
+/usr/lib/nagios/plugins/check_disk_smb
+/usr/lib/nagios/plugins/check_ircd
+/usr/lib/nagios/plugins/check_log
+/usr/lib/nagios/plugins/check_oracle
+/usr/lib/nagios/plugins/check_sensors
+/usr/lib/nagios/plugins/check_wave
+/usr/lib/nagios/plugins/check_mailq
+/usr/lib/nagios/plugins/check_simap
+/usr/lib/nagios/plugins/check_spop
+
+
+

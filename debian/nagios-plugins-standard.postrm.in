@@ -1,0 +1,17 @@
+#!/bin/sh -e
+
+STD_PLUGINS="@STD_PLUGINS@"
+
+if [ "$1" = "purge" ]; then
+	if which ucf >/dev/null 2>&1; then
+		have_ucf="yes"
+	fi
+	for f in $STD_PLUGINS; do
+		rm -f /etc/nagios-plugins/config/${f}.cfg
+		if [ "$have_ucf" = "yes" ]; then
+			ucf --purge /etc/nagios-plugins/config/${f}.cfg
+		fi
+	done 
+fi
+
+#DEBHELPER#

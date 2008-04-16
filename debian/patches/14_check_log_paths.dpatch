@@ -1,0 +1,28 @@
+#! /bin/sh /usr/share/dpatch/dpatch-run
+## 14_check_log_paths.dpatch by  <seanius@debian.org>
+##
+## All lines beginning with `## DP:' are a description of the patch.
+## DP: No description.
+
+@DPATCH@
+diff -urNad nagios-plugins~/plugins-scripts/check_log.sh nagios-plugins/plugins-scripts/check_log.sh
+--- nagios-plugins~/plugins-scripts/check_log.sh	2005-02-04 00:51:35.000000000 +0100
++++ nagios-plugins/plugins-scripts/check_log.sh	2005-10-09 17:29:46.000000000 +0200
+@@ -62,14 +62,14 @@
+ 
+ ECHO="/bin/echo"
+ GREP="/bin/egrep"
+-DIFF="/bin/diff"
+-TAIL="/bin/tail"
++DIFF="/usr/bin/diff"
++TAIL="/usr/bin/tail"
+ CAT="/bin/cat"
+ RM="/bin/rm"
+ CHMOD="/bin/chmod"
+ TOUCH="/bin/touch"
+
+-PROGNAME=`/bin/basename $0`
++PROGNAME=`/usr/bin/basename $0`
+ PROGPATH=`echo $0 | sed -e 's,[\\/][^\\/][^\\/]*$,,'`
+ REVISION=`echo '$Revision: 906 $' | sed -e 's/[^0-9.]//g'`
+ 

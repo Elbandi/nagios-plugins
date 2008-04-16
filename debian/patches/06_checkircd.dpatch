@@ -1,0 +1,45 @@
+#! /bin/sh -e
+## 06_checkircd.dpatch by  <ultrotter@debian.org>
+##
+## All lines beginning with `## DP:' are a description of the patch.
+## DP: No description.
+
+if [ $# -lt 1 ]; then
+    echo "`basename $0`: script expects -patch|-unpatch as argument" >&2
+    exit 1
+fi
+
+[ -f debian/patches/00patch-opts ] && . debian/patches/00patch-opts
+patch_opts="${patch_opts:--f --no-backup-if-mismatch} ${2:+-d $2}"
+
+case "$1" in
+    -patch) patch -p1 ${patch_opts} < $0;;
+    -unpatch) patch -R -p1 ${patch_opts} < $0;;
+    *)
+        echo "`basename $0`: script expects -patch|-unpatch as argument" >&2
+        exit 1;;
+esac
+
+exit 0
+
+@DPATCH@
+diff -urNad /home/ultrotter/docs/projects/deb/nagios/new/nagios-plugins-1.3.1.0/plugins-scripts/check_ircd.pl nagios-plugins-1.3.1.0/plugins-scripts/check_ircd.pl
+--- /home/ultrotter/docs/projects/deb/nagios/new/nagios-plugins-1.3.1.0/plugins-scripts/check_ircd.pl	2002-05-07 07:35:49.000000000 +0200
++++ nagios-plugins-1.3.1.0/plugins-scripts/check_ircd.pl	2004-08-12 15:54:50.000000000 +0200
+@@ -148,7 +148,6 @@
+ 	my $proto = getprotobyname('tcp');
+ 	my $sockaddr;
+ 	my $this;
+-	my $thisaddr = gethostbyname($in_hostname);
+ 	my $that;
+ 	my ($name, $aliases,$type,$len,$thataddr) = gethostbyname($in_remotehost);
+ #	($name,$aliases,$type,$len,$thisaddr) = gethostbyname($in_hostname);
+@@ -158,7 +157,7 @@
+ 	    exit $ERRORS{"UNKNOWN"};
+ 	}
+ 	$sockaddr = 'S n a4 x8';
+-	$this = pack($sockaddr, AF_INET, 0, $thisaddr);
++	$this = pack($sockaddr, AF_INET, 0, INADDR_ANY);
+ 	$that = pack($sockaddr, AF_INET, $in_remoteport, $thataddr);
+ 	if (!bind(ClientSocket, $this)) {
+ 	    print "IRCD UNKNOWN: Could not bind socket ($!)\n";
