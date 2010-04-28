@@ -1,0 +1,1593 @@
+dnl Process this file with autoconf to produce a configure script.
+AC_REVISION ($Revision: 1873 $)
+AC_PREREQ(2.59)
+AC_INIT(nagios-plugins,1.4.11)
+AC_CONFIG_SRCDIR(NPTest.pm)
+AC_CONFIG_FILES(gl/Makefile)
+AC_CONFIG_AUX_DIR(build-aux)
+AM_INIT_AUTOMAKE([1.8.3])
+AM_CONFIG_HEADER(config.h)
+AC_CANONICAL_HOST
+
+RELEASE=1
+AC_SUBST(RELEASE)
+
+AC_PREFIX_DEFAULT(/usr/local/nagios)
+
+dnl Deprecated configure options
+
+
+dnl Append user (-o), group (-g), mode (-m) to install command
+dnl There is an assumption that this is possible with ./configure's chosen install command
+extra_install_args=""
+AC_ARG_WITH(nagios_user,
+	ACX_HELP_STRING([--with-nagios-user=USER],
+		[Installs executables with this user. Defaults to install user]),
+	extra_install_args="-o $withval")
+AC_ARG_WITH(nagios_group,
+	ACX_HELP_STRING([--with-nagios-group=GROUP],
+		[Installs executables with this group. Defaults to install user]),
+	extra_install_args="$extra_install_args -g $withval")
+AC_ARG_WITH(world_permissions,
+	ACX_HELP_STRING([--without-world-permissions],
+		[Installs executables without world permissions]))
+
+if test "x$with_world_permissions" = xno ; then
+	extra_install_args="$extra_install_args -m 0550"
+fi
+
+INSTALL="$INSTALL $extra_install_args"
+INSTALL_STRIP_PROGRAM="$INSTALL_STRIP_PROGRAM $extra_install_args"
+AC_SUBST(INSTALL)
+
+AC_PROG_CC
+gl_EARLY
+AC_PROG_GCC_TRADITIONAL
+AC_PROG_LIBTOOL
+
+AM_PROG_CC_C_O
+
+AC_FUNC_ERROR_AT_LINE
+
+ifdef([AC_FUNC_STRTOD],[AC_FUNC_STRTOD],[AM_FUNC_STRTOD])
+
+PLUGIN_TEST=`echo $srcdir/plugins/t/*.t|sed -e 's,\.*/plugins/,,g'`
+AC_SUBST(PLUGIN_TEST)dnl
+
+SCRIPT_TEST=`echo $srcdir/plugins-scripts/t/*.t|sed -e 's,\.*/plugins-scripts/,,g'`
+AC_SUBST(SCRIPT_TEST)dnl
+
+WARRANTY="The nagios plugins come with ABSOLUTELY NO WARRANTY. You may redistribute\ncopies of the plugins under the terms of the GNU General Public License.\nFor more information about these matters, see the file named COPYING.\n"
+AC_SUBST(WARRANTY)
+
+SUPPORT="Send email to nagios-users@lists.sourceforge.net if you have questions\nregarding use of this software. To submit patches or suggest improvements,\nsend email to nagiosplug-devel@lists.sourceforge.net.\nPlease include version information with all correspondence (when possible,\nuse output from the --version option of the plugin itself).\n"
+AC_SUBST(SUPPORT)
+
+dnl CGIURL has changed for Nagios with 1.0 beta
+AC_ARG_WITH(cgiurl,
+	ACX_HELP_STRING([--with-cgiurl=DIR],
+		[sets URL for cgi programs]),
+	with_cgiurl=$withval,
+	with_cgiurl=/nagios/cgi-bin)
+CGIURL="$with_cgiurl"
+AC_DEFINE_UNQUOTED(CGIURL,"$CGIURL",[URL of CGI programs])
+
+AC_ARG_WITH(trusted_path,
+	ACX_HELP_STRING([--with-trusted-path=PATH],
+		[sets trusted path for executables called by scripts (default=/bin:/sbin:/usr/bin:/usr/sbin)]),
+	with_trusted_path=$withval,
+	with_trusted_path=/bin:/sbin:/usr/bin:/usr/sbin)
+AC_SUBST(with_trusted_path)
+
+EXTRAS=
+EXTRAS_ROOT=
+dnl PATH=/bin:/sbin:/usr/bin:/usr/sbin:/usr/etc:/usr/local/bin:/usr/local/sbin:$PATH
+
+LDFLAGS="$LDFLAGS -L."
+
+ac_cv_uname_m=`uname -m`
+ac_cv_uname_s=`uname -s`
+ac_cv_uname_r=`uname -r`
+ac_cv_uname_v=`uname -v`
+
+PKG_ARCH=`uname -p`
+REV_DATESTAMP=`date '+%Y.%m.%d.%H.%M'`
+REV_TIMESTAMP=`date '+%Y%m%d%H%M%S'`
+
+AC_SUBST(PKG_ARCH)
+AC_SUBST(REV_DATESTAMP)
+AC_SUBST(REV_TIMESTAMP)
+
+dnl Checks for programs.
+AC_PATH_PROG(PYTHON,python)
+AC_PATH_PROG(SH,sh)
+AC_PATH_PROG(PERL,perl)
+AC_PATH_PROG(LIBGNUTLS_CONFIG,libgnutls-config)
+AC_PATH_PROG(HOSTNAME,hostname)
+AC_PATH_PROG(BASENAME,basename)
+
+dnl allow them to override the path of perl
+AC_ARG_WITH(perl,
+        ACX_HELP_STRING([--with-perl=PATH],
+	                [sets path to perl executable]),
+			with_perl=$withval,with_perl=$PERL)
+AC_SUBST(PERL, $with_perl)
+
+dnl openssl/gnutls
+AC_ARG_WITH(openssl,
+            AC_HELP_STRING([--with-openssl=DIR], 
+                           [path to openssl installation]),)
+
+AC_ARG_WITH(gnutls,
+            ACX_HELP_STRING([--with-gnutls=PATH],
+                            [path to gnutls installation root]),)
+
+dnl you can only have one or the other
+if test ! "$with_openssl" = "" && test ! "$with_openssl" = "no"; then
+	with_gnutls="no"
+fi
+if test ! "$with_gnutls" = "" && test ! "$with_gnutls" = "no"; then
+	with_openssl="no"
+fi
+
+dnl list of possible dirs to try to autodetect openssl
+dnl if $dir/include exists, we consider it found
+dnl the order should allow locally installed versions to override distros' ones
+OPENSSL_DIRS="/usr /usr/local /usr/slocal /usr/local/openssl /usr/local/ssl \
+              /opt /opt/openssl"
+
+
+dnl
+dnl Checks for libraries.
+dnl
+
+AC_CHECK_LIB(dce,main,SOCKETLIBS="$SOCKETLIBS -ldce")
+AC_CHECK_LIB(nsl,main,SOCKETLIBS="$SOCKETLIBS -lnsl")
+AC_CHECK_LIB(socket,socket,SOCKETLIBS="$SOCKETLIBS -lsocket")
+AC_CHECK_LIB(resolv,main,SOCKETLIBS="$SOCKETLIBS -lresolv")
+AC_SUBST(SOCKETLIBS)
+
+dnl
+dnl check for math-related functions needing -lm
+AC_CHECK_HEADERS(math.h)
+AC_CHECK_LIB(m,floor,MATHLIBS="-lm")
+AC_SUBST(MATHLIBS)
+
+dnl Check for libtap, to run perl-like tests
+AC_CHECK_LIB(tap, plan_tests, 
+	EXTRA_TEST="test_utils test_disk test_tcp test_cmd test_base64"
+	AC_SUBST(EXTRA_TEST)
+	)
+
+dnl Check for PostgreSQL libraries
+_SAVEDLIBS="$LIBS"
+_SAVEDCPPFLAGS="$CPPFLAGS"
+AC_ARG_WITH(pgsql,
+	ACX_HELP_STRING([--with-pgsql=DIR],
+		[sets path to pgsql installation]),
+	PGSQL=$withval,)
+AC_CHECK_LIB(crypt,main)
+if test "$ac_cv_lib_crypt_main" = "yes"; then
+  if test -n "$PGSQL"; then
+    LDFLAGS="$LDFLAGS -L$PGSQL/lib"
+    CPPFLAGS="$CPPFLAGS -I$PGSQL/include"
+  fi
+  AC_CHECK_LIB(pq,PQsetdbLogin,,,-lcrypt)
+  if test "$ac_cv_lib_pq_PQsetdbLogin" = "yes"; then
+    AC_CHECK_HEADERS(pgsql/libpq-fe.h)
+    AC_CHECK_HEADERS(postgresql/libpq-fe.h)
+    AC_CHECK_HEADERS(libpq-fe.h)
+    if [[ -n "$PGSQL" -a "$ac_cv_header_libpq_fe_h" = "yes" ]]; then
+      PGLIBS="-L$PGSQL/lib -lpq -lcrypt"
+      PGINCLUDE="-I$PGSQL/include"
+    elif test  "$ac_cv_header_pgsql_libpq_fe_h" = "yes"; then
+      PGLIBS="-lpq -lcrypt"
+      PGINCLUDE="-I/usr/include/pgsql"
+    elif test  "$ac_cv_header_postgresql_libpq_fe_h" = "yes"; then
+      PGLIBS="-L$PGSQL/lib -lpq -lcrypt"
+      PGINCLUDE="-I/usr/include/postgresql"
+    elif test  "$ac_cv_header_libpq_fe_h" = "yes"; then
+      PGLIBS="-L$PGSQL/lib -lpq -lcrypt"
+      PGINCLUDE="-I$PGSQL/include"
+    fi
+    if test -z "$PGINCLUDE"; then
+      AC_MSG_WARN([Skipping PostgreSQL plugin (check_pgsql)])
+      AC_MSG_WARN([install PostgreSQL headers to compile this plugin (see REQUIREMENTS).])
+    else
+      AC_SUBST(PGLIBS)
+      AC_SUBST(PGINCLUDE)
+      EXTRAS="$EXTRAS check_pgsql"
+    fi
+  else
+    AC_MSG_WARN([Skipping PostgreSQL plugin (check_pgsql)])
+    AC_MSG_WARN([LIBS="$LIBS" CPPFLAGS="$CPPFLAGS"])
+    AC_MSG_WARN([install PostgreSQL libs to compile this plugin (see REQUIREMENTS).])
+  fi
+else
+  AC_MSG_WARN([Skipping PostgreSQL plugin (check_pgsql)])
+  AC_MSG_WARN([install lib crypt and PostgreSQL libs to compile this plugin (see REQUIREMENTS).])
+fi
+LIBS="$_SAVEDLIBS"
+CPPFLAGS="$_SAVEDCPPFLAGS"
+
+dnl Check for radius libraries
+_SAVEDLIBS="$LIBS"
+AC_CHECK_LIB(radiusclient,rc_read_config)
+if test "$ac_cv_lib_radiusclient_rc_read_config" = "yes"; then
+  EXTRAS="$EXTRAS check_radius"
+	RADIUSLIBS="-lradiusclient"
+  AC_SUBST(RADIUSLIBS)
+else
+  AC_CHECK_LIB(radiusclient-ng,rc_read_config)
+  if test "$ac_cv_lib_radiusclient_ng_rc_read_config" = "yes"; then
+    EXTRAS="$EXTRAS check_radius"
+  	  RADIUSLIBS="-lradiusclient-ng"
+    AC_SUBST(RADIUSLIBS)
+  else
+    AC_MSG_WARN([Skipping radius plugin])
+    AC_MSG_WARN([install radius libs to compile this plugin (see REQUIREMENTS).])
+  fi
+fi
+LIBS="$_SAVEDLIBS"
+
+dnl Check for LDAP libraries
+_SAVEDLIBS="$LIBS"
+AC_CHECK_LIB(ldap,main,,,-llber)
+if test "$ac_cv_lib_ldap_main" = "yes"; then
+  LDAPLIBS="-lldap -llber"\
+  LDAPINCLUDE="-I/usr/include/ldap"
+  AC_SUBST(LDAPLIBS)
+  AC_SUBST(LDAPINCLUDE)
+  AC_CHECK_FUNCS(ldap_set_option)
+  EXTRAS="$EXTRAS check_ldap"
+	AC_CHECK_FUNCS(ldap_init ldap_set_option ldap_get_option ldap_start_tls_s)
+else
+  AC_MSG_WARN([Skipping LDAP plugin])
+  AC_MSG_WARN([install LDAP libs to compile this plugin (see REQUIREMENTS).])
+fi
+LIBS="$_SAVEDLIBS"
+
+dnl Check for headers used by check_ide_smart
+AC_CHECK_HEADER(linux/hdreg.h, FOUNDINCLUDE=yes, FOUNDINCLUDE=no)
+if test "$FOUNDINCLUDE" = "yes" ; then
+	AC_CHECK_HEADER(linux/types.h, FOUNDINCLUDE=yes, FOUNDINCLUDE=no)
+fi
+
+if test "$FOUNDINCLUDE" = "yes" ; then
+	EXTRAS="$EXTRAS check_ide_smart"
+else
+	AC_MSG_WARN([Skipping check_ide_smart plugin.]) 
+	AC_MSG_WARN([check_ide_smart is linux specific. It requires linux/hdreg.h and linux/types.h.]) 
+fi
+
+dnl Check for mysql libraries
+np_mysqlclient
+if test $with_mysql = "no" ; then
+  AC_MSG_WARN([Skipping mysql plugin])
+  AC_MSG_WARN([install mysql client libs to compile this plugin (see REQUIREMENTS).])
+else
+  EXTRAS="$EXTRAS check_mysql check_mysql_query"
+  MYSQLINCLUDE="$np_mysql_include"
+  MYSQLLIBS="$np_mysql_libs"
+  MYSQLCFLAGS="$np_mysql_cflags"
+  AC_SUBST(MYSQLINCLUDE)
+  AC_SUBST(MYSQLLIBS)
+  AC_SUBST(MYSQLCFLAGS)
+fi
+
+AC_ARG_WITH([ipv6],
+	[AS_HELP_STRING([--with-ipv6], [support IPv6 @<:@default=check@:>@])],
+	[], [with_ipv6=check])
+
+dnl Check for AF_INET6 support - unistd.h required for Darwin
+if test "$with_ipv6" != "no"; then
+	AC_CACHE_CHECK([for IPv6 support], np_cv_sys_ipv6, [
+		AC_TRY_COMPILE(
+			[#ifdef HAVE_UNISTD_H
+			#include <unistd.h>
+			#endif
+			#include <netinet/in.h>
+			#include <sys/socket.h>],
+			[struct sockaddr_in6 sin6;
+			void *p;
+
+			sin6.sin6_family = AF_INET6;
+			sin6.sin6_port = 587;
+			p = &sin6.sin6_addr;],
+			[np_cv_sys_ipv6=yes],
+			[np_cv_sys_ipv6=no])
+		])
+	if test "$np_cv_sys_ipv6" = "no" -a "$with_ipv6" != "check"; then
+		AC_MSG_FAILURE([--with-ipv6 was given, but test for IPv6 support failed])
+	fi
+	if test "$np_cv_sys_ipv6" = "yes"; then
+		AC_DEFINE(USE_IPV6,1,[Enable IPv6 support])
+	fi
+	with_ipv6="$np_cv_sys_ipv6"
+fi
+
+
+dnl Checks for Kerberos. Must come before openssl checks for Redhat EL 3
+AC_CHECK_HEADERS(krb5.h,FOUNDINCLUDE=yes,FOUNDINCLUDE=no)
+if test "$FOUNDINCLUDE" = "no"; then
+  _SAVEDCPPFLAGS="$CPPFLAGS"
+  CPPFLAGS="$_SAVEDCPPFLAGS -I/usr/kerberos/include"
+  unset ac_cv_header_krb5_h
+  AC_CHECK_HEADERS(krb5.h,
+                   KRB5INCLUDE="-I/usr/kerberos/include"
+                   FOUNDINCLUDE=yes,
+                   FOUNDINCLUDE=no)
+fi
+AC_SUBST(KRBINCLUDE)
+if test "$FOUNDINCLUDE" = "no"; then
+  CPPFLAGS="$_SAVEDCPPFLAGS"
+fi
+
+
+dnl openssl detection/configuration
+if ! test x"$with_openssl" = x"no"; then
+	dnl Check for OpenSSL location if it wasn't already specified
+	if ! test -d "$with_openssl"; then
+		for d in $OPENSSL_DIRS; do
+			if test -x ${d}/bin/openssl || test -x ${d}/sbin/openssl ; then
+				with_openssl=$d
+			fi
+		done
+	fi
+
+	_SAVEDCPPFLAGS="$CPPFLAGS"
+	_SAVEDLDFLAGS="$LDFLAGS"
+	dnl Check for OpenSSL header files
+	unset FOUNDINCLUDE
+	if test x"$with_openssl" != x"/usr" ; then
+		CPPFLAGS="$CPPFLAGS -I$with_openssl/include"
+		LDFLAGS="$LDFLAGS -L$with_openssl/lib"
+	fi
+
+	dnl check for openssl in $dir/include/openssl
+	AC_CHECK_HEADERS(openssl/ssl.h openssl/x509.h openssl/rsa.h openssl/pem.h openssl/crypto.h openssl/err.h,
+	                 SSLINCLUDE="-I$with_openssl/include"
+	                 FOUNDINCLUDE=yes,
+	                 FOUNDINCLUDE=no)
+	dnl else check to see if $dir/include has it
+	if test "$FOUNDINCLUDE" = "no"; then
+		AC_CHECK_HEADERS(ssl.h x509.h rsa.h pem.h crypto.h err.h,
+		                 SSLINCLUDE="-I$with_openssl/include"
+		                 FOUNDINCLUDE=yes,
+		                 FOUNDINCLUDE=no)
+	fi
+	AC_SUBST(SSLINCLUDE)
+	dnl if we didn't find it, reset CPPFLAGS
+	if test "$FOUNDINCLUDE" = "no"; then
+		CPPFLAGS="$_SAVEDCPPFLAGS"
+		LDFLAGS="$_SAVEDLDFLAGS"
+	fi
+
+	dnl Check for crypto lib
+	_SAVEDLIBS="$LIBS"
+	LIBS="-L${with_openssl}/lib"
+	AC_CHECK_LIB(crypto,CRYPTO_lock)
+	if test "$ac_cv_lib_crypto_CRYPTO_lock" = "yes"; then
+		dnl Check for SSL lib
+		AC_CHECK_LIB(ssl,main, SSLLIBS="-lssl -lcrypto",,-lcrypto)
+	fi
+	LIBS="$_SAVEDLIBS"
+
+	dnl test headers and libs to decide whether check_http should use SSL
+	if test "$ac_cv_lib_crypto_CRYPTO_lock" = "yes"; then
+		if test "$ac_cv_lib_ssl_main" = "yes"; then
+			if test "$FOUNDINCLUDE" = "yes"; then
+				FOUNDOPENSSL="yes"
+			fi
+		fi
+	fi
+fi
+
+
+dnl check for gnutls if openssl isn't found (or is disabled)
+if test ! "$FOUNDOPENSSL" = "yes" && test ! "$with_gnutls" = "no"; then
+	if test ! "$with_gnutls" = ""; then
+		CPPFLAGS="$CPPFLAGS -I${with_gnutls}/include"
+	elif test ! "$LIBGNUTLS_CONFIG" = ""; then
+		CPPFLAGS="$CPPFLAGS -I`$LIBGNUTLS_CONFIG --prefix`"
+	fi
+	AC_CHECK_HEADERS([gnutls/openssl.h],FOUNDGNUTLS="yes",)
+	if test "$FOUNDGNUTLS" = "yes"; then
+		AC_CHECK_LIB(gnutls-openssl,main,SSLLIBS="-lgnutls-openssl")
+	fi
+fi
+dnl end check for gnutls
+
+if test "$FOUNDOPENSSL" = "yes" || test "$FOUNDGNUTLS" = "yes"; then
+	check_tcp_ssl="check_simap check_spop check_jabber check_nntps check_ssmtp"
+	AC_SUBST(check_tcp_ssl)
+	AC_SUBST(SSLLIBS)
+	AC_DEFINE(HAVE_SSL,1,[Define if SSL libraries are found])
+	if test "$FOUNDOPENSSL" = "yes"; then
+		AC_DEFINE(USE_OPENSSL,1,[Define if using OpenSSL libraries])
+		with_openssl="yes"
+		with_gnutls="no"
+	else
+		AC_DEFINE(USE_GNUTLS,1,[Define if using gnutls libraries])
+		with_gnutls="yes"
+		with_openssl="no"
+	fi
+else
+	dnl else deliberately disabled or no ssl support available
+	AC_MSG_WARN([OpenSSL or GnuTLS libs could not be found or were disabled])
+	with_openssl="no"
+	with_gnutls="no"
+fi
+
+dnl
+dnl Checks for header files.
+dnl
+
+AC_HEADER_TIME
+AC_HEADER_SYS_WAIT
+AC_CHECK_HEADERS(signal.h syslog.h uio.h errno.h sys/time.h sys/socket.h sys/un.h sys/poll.h)
+AC_CHECK_HEADERS(features.h stdarg.h sys/unistd.h ctype.h)
+
+dnl Checks for typedefs, structures, and compiler characteristics.
+AC_C_CONST
+AC_STRUCT_TM
+AC_TYPE_PID_T
+AC_TYPE_SIZE_T
+AC_TYPE_SIGNAL
+
+AC_CACHE_CHECK([for va_copy],ac_cv_HAVE_VA_COPY,[
+AC_TRY_LINK([#include <stdarg.h>
+va_list ap1,ap2;], [va_copy(ap1,ap2);],
+ac_cv_HAVE_VA_COPY=yes,
+ac_cv_HAVE_VA_COPY=no)])
+if test x"$ac_cv_HAVE_VA_COPY" = x"yes"; then
+    AC_DEFINE(HAVE_VA_COPY,1,[Whether va_copy() is available])
+else    
+    AC_CACHE_CHECK([for __va_copy],ac_cv_HAVE___VA_COPY,[
+    AC_TRY_LINK([#include <stdarg.h>
+    va_list ap1,ap2;], [__va_copy(ap1,ap2);],
+    ac_cv_HAVE___VA_COPY=yes,
+    ac_cv_HAVE___VA_COPY=no)])
+    if test x"$ac_cv_HAVE___VA_COPY" = x"yes"; then
+        AC_DEFINE(HAVE___VA_COPY,1,[Whether __va_copy() is available])
+    fi
+fi
+
+AC_TRY_COMPILE([#include <sys/time.h>],
+               [struct timeval *tv;
+                struct timezone *tz;],
+               AC_DEFINE(HAVE_STRUCT_TIMEVAL,1,[Define if we have a timeval structure])
+               AC_TRY_COMPILE([#include <sys/time.h>],
+                              [struct timeval *tv;
+                               struct timezone *tz;
+                               gettimeofday(tv, tz);],
+                              AC_DEFINE(HAVE_GETTIMEOFDAY,1,[Define if gettimeofday is found]),
+                              AC_DEFINE(NEED_GETTIMEOFDAY,1,[Define if gettimeofday is needed])))
+
+dnl Checks for library functions.
+AC_CHECK_FUNCS(memmove select socket strdup strstr strtol strtoul floor)
+AC_CHECK_FUNCS(poll)
+
+AC_MSG_CHECKING(return type of socket size)
+AC_TRY_COMPILE([#include <stdlib.h>
+                #include <sys/types.h>
+                #include <sys/socket.h>],
+               [int a = send(1, (const void *) buffer, (size_t *) 0, (int *) 0);],
+               ac_cv_socket_size_type=["size_t"]
+                AC_MSG_RESULT(size_t),
+               ac_cv_socket_size_type=["int"]
+                AC_MSG_RESULT(int))
+
+AC_DEFINE_UNQUOTED(SOCKET_SIZE_TYPE, $ac_cv_socket_size_type ,
+	[Define type of socket size])
+
+
+dnl #### Process table test
+
+AC_PATH_PROG(PATH_TO_PS,ps)
+
+AC_MSG_CHECKING(for ps syntax)
+AC_ARG_WITH(ps_command,
+            ACX_HELP_STRING([--with-ps-command=PATH], 
+                            [Verbatim command to execute for ps]),
+            PS_COMMAND=$withval)
+AC_ARG_WITH(ps_format,
+            ACX_HELP_STRING([--with-ps-format=FORMAT],
+                            [Format string for scanning ps output]),
+            PS_FORMAT=$withval)
+AC_ARG_WITH(ps_cols,
+            ACX_HELP_STRING([--with-ps-cols=NUM], 
+                            [Number of columns in ps command]),
+            PS_COLS=$withval)
+AC_ARG_WITH(ps_varlist,
+            ACX_HELP_STRING([--with-ps-varlist=LIST],
+                            [Variable list for sscanf of 'ps' output]),
+            PS_VARLIST=$withval)
+
+if test -n "$PS_COMMAND" && test -n "$PS_FORMAT" && test -n "$PS_COLS" && test -n "$PS_VARLIST"; then 
+	ac_cv_ps_command="$PS_COMMAND"
+	ac_cv_ps_format="$PS_FORMAT"
+	ac_cv_ps_varlist="$PS_VARLIST"
+	ac_cv_ps_cols="$PS_COLS"
+	AC_MSG_RESULT([(command-line) $ac_cv_ps_command])
+
+dnl Using /usr/ucb/ps on Solaris systems, to avoid truncation
+dnl Limitation that command name is not available
+elif test "$ac_cv_uname_s" = "SunOS" && /usr/ucb/ps -alxwwn 2>/dev/null | \
+	egrep -i ["^ *F +UID +PID +PPID +%C +PRI +NI +SZ +RSS +WCHAN +S +TT +TIME +COMMAND"] > /dev/null
+then
+	ac_cv_ps_varlist="[&procuid,&procpid,&procppid,&procpcpu,&procvsz,&procrss,procstat,&pos]"
+	ac_cv_ps_command="/usr/ucb/ps -alxwwn"
+	ac_cv_ps_format=["%*s %d %d %d %d %*d %*d %d %d%*[ 0123456789abcdef]%[OSRZT]%*s %*s %n"]
+	ac_cv_ps_cols=8
+	AC_MSG_RESULT([$ac_cv_ps_command])
+
+dnl Some gnu/linux systems (debian for one) don't like -axwo and need axwo.
+dnl so test for this first...
+elif ps axwo 'stat comm vsz rss user uid pid ppid args' 2>/dev/null | \
+	egrep -i ["^ *STAT +[UCOMAND]+ +VSZ +RSS +USER +UID +PID +PPID +COMMAND"] > /dev/null
+then
+	ac_cv_ps_varlist="[procstat,&procuid,&procpid,&procppid,&procvsz,&procrss,&procpcpu,procprog,&pos]"
+	ac_cv_ps_command="$PATH_TO_PS axwo 'stat uid pid ppid vsz rss pcpu comm args'"
+	ac_cv_ps_format="%s %d %d %d %d %d %f %s %n"
+	ac_cv_ps_cols=9
+	AC_MSG_RESULT([$ac_cv_ps_command])
+
+dnl For OpenBSD 3.2 & 3.3. Must come before ps -weo
+dnl Should also work for FreeBSD 5.2.1 and 5.3
+dnl  STAT UCOMM              VSZ   RSS USER      PPID COMMAND
+elif ps -axwo 'stat comm vsz rss user uid pid ppid args' 2>/dev/null | \
+	egrep -i ["^ *STAT +[UCOMAND]+ +VSZ +RSS +USER +UID +PID +PPID +COMMAND"] > /dev/null
+then
+	ac_cv_ps_varlist="[procstat,&procuid,&procpid,&procppid,&procvsz,&procrss,&procpcpu,procprog,&pos]"
+	ac_cv_ps_command="$PATH_TO_PS -axwo 'stat uid pid ppid vsz rss pcpu comm args'"
+	ac_cv_ps_format="%s %d %d %d %d %d %f %s %n"
+	ac_cv_ps_cols=9
+	AC_MSG_RESULT([$ac_cv_ps_command])
+
+dnl Some *BSDs have different format for ps. This is mainly to catch FreeBSD 4. 
+dnl Limitation: Only first 16 chars returned for ucomm field
+dnl Must come before ps -weo
+elif ps -axwo 'stat uid pid ppid vsz rss pcpu ucomm command' 2>/dev/null | \
+	egrep -i ["^ *STAT +UID +PID +PPID +VSZ +RSS +%CPU +UCOMM +COMMAND"] > /dev/null
+then
+	ac_cv_ps_varlist="[procstat,&procuid,&procpid,&procppid,&procvsz,&procrss,&procpcpu,procprog,&pos]"
+	ac_cv_ps_command="$PATH_TO_PS -axwo 'stat uid pid ppid vsz rss pcpu ucomm command'"
+	ac_cv_ps_format="%s %d %d %d %d %d %f %s %n"
+	ac_cv_ps_cols=9
+	AC_MSG_RESULT([$ac_cv_ps_command])
+
+dnl  STAT UCOMM              VSZ   RSS USER       UID  PPID COMMAND
+elif ps -weo 'stat comm vsz rss user uid pid ppid etime args' 2>/dev/null | \
+	egrep -i ["^ *S[TAUES]* +[UCOMDNA]+ +[VSIZE]+ +R[S]+ +U[SER]+ +U[ID]+ +P[ID]+ +P[PID]+ +[ELAPSD]+ +[RGSCOMDNA]+"] >/dev/null
+then
+	ac_cv_ps_varlist="[procstat,&procuid,&procpid,&procppid,&procvsz,&procrss,&procpcpu,procetime,procprog,&pos]"
+	ac_cv_ps_command="$PATH_TO_PS -weo 'stat uid pid ppid vsz rss pcpu etime comm args'"
+	ac_cv_ps_format="%s %d %d %d %d %d %f %s %s %n"
+	ac_cv_ps_cols=10
+	AC_MSG_RESULT([$ac_cv_ps_command])
+
+dnl FreeBSD
+elif ps waxco 'state command vsz rss uid user pid ppid' 2>/dev/null | \
+	egrep -i ["^STAT +COMMAND +VSZ +RSS +UID +USER +PID +PPID"] >/dev/null
+then
+	ac_cv_ps_varlist="[procstat,&procuid,&procpid,&procppid,&procvsz,&procrss,&procpcpu,procprog,&pos]"
+	ac_cv_ps_command="$PATH_TO_PS waxco 'state uid pid ppid vsz rss pcpu command command'"
+	ac_cv_ps_format="%s %d %d %d %d %d %f %s %n"
+	ac_cv_ps_cols=9
+	AC_MSG_RESULT([$ac_cv_ps_command])
+
+dnl BSD-like mode in RH 6.1
+elif ps waxno 'state comm vsz rss uid user pid ppid args' 2>/dev/null | \
+	egrep -i ["^S +COMMAND +VSZ +RSS +UID +USER +PID +PPID +[RGSCOMDNA]+"] >/dev/null
+then
+	ac_cv_ps_varlist="[procstat,&procuid,&procpid,&procppid,&procvsz,&procrss,&procpcpu,procprog,&pos]"
+	ac_cv_ps_command="$PATH_TO_PS waxno 'state uid pid ppid vsz rss pcpu comm args'"
+	ac_cv_ps_format="%s %d %d %d %d %d %f %s %n"
+	ac_cv_ps_cols=9
+	AC_MSG_RESULT([$ac_cv_ps_command])
+
+dnl SunOS 4.1.3:
+dnl  F  UID  PID  PPID  CP  PRI  NI  SZ  RSS  WCHAN  STAT  TT  TIME  COMMAND
+dnl Need the head -1 otherwise test will work because arguments are found
+elif ps -laxnwww 2>/dev/null | head -1 | \
+	egrep -i ["^ *F(LAGS)? +UID +PID +PPID +CP +PRI +NI +(SZ)|(VSZ)|(SIZE) +RSS +WCHAN +STAT? +TTY? +TIME +COMMAND"] >/dev/null
+then
+	ac_cv_ps_varlist="[&procuid,&procpid,&procppid,&procvsz,&procrss,procstat,&pos,procprog]"
+	ac_cv_ps_command="$PATH_TO_PS -laxnwww"
+	ac_cv_ps_format="%*s %d %d %d %*s %*s %*s %d %d %*s %s %*s %*s %n%s"
+	ac_cv_ps_cols=9
+	AC_MSG_RESULT([$ac_cv_ps_command])
+
+dnl Debian Linux / procps v1.2.9:
+dnl  FLAGS   UID   PID  PPID PRI  NI   SIZE   RSS WCHAN       STA TTY TIME COMMAND
+dnl    100     0     1     0   0   0    776    76  c0131c8c   S  ffff  0:11 init [2]
+dnl
+elif ps laxnwww 2>/dev/null | \
+	egrep -i ["^ *F(LAGS)? +UID +PID +PPID +PRI +NI +(VSZ)|(SIZE) +RSS +WCHAN +STAT? TTY +TIME +COMMAND"] >/dev/null
+then
+	ac_cv_ps_varlist="[&procuid,&procpid,&procppid,procstat,&procvsz,&procrss,&pos,procprog]"
+	ac_cv_ps_command="$PATH_TO_PS laxnwww"
+	ac_cv_ps_format="%*s %d %d %d %*s %*s %d %d %*s %s %*s %*s %n%s"
+	ac_cv_ps_cols=9
+	AC_MSG_RESULT([$ac_cv_ps_command])
+
+dnl OpenBSD (needs to come early because -exo appears to work, but does not give all procs)
+elif ps -axo 'stat comm vsz rss user uid pid ppid args' 2>/dev/null | \
+	egrep -i ["^ *S[TAUES]* +[UCOMDNA]+ +[VSIZE]+ +R[S]+ +U[SER]+ +U[ID]+ +P[PID]+ +P[PID]+ +[RGSCOMDNA]+"] >/dev/null
+then
+	ac_cv_ps_varlist="[procstat,&procuid,&procpid,&procppid,&procvsz,&procrss,&procpcpu,procprog,&pos]"
+	ac_cv_ps_command="$PATH_TO_PS -axo 'stat uid pid ppid vsz rss pcpu comm args'"
+	ac_cv_ps_format="%s %d %d %d %d %d %f %s %n"
+	ac_cv_ps_cols=9
+	AC_MSG_RESULT([$ac_cv_ps_command])
+
+dnl Tru64 - needs %*[ +<>] in PS_FORMAT. 
+dnl Has /usr/bin/ps and /sbin/ps - force sbin version
+dnl Can't use vsize and rssize because comes back with text (eg, 1.5M instead 
+dnl of 1500). Will need big changes to check_procs to support
+elif /sbin/ps -eo 'stat uid pid ppid pcpu etime comm args' 2>/dev/null | \
+	egrep -i ["^ *S +[UID]+ +[PID]+ +[PID]+ +[%CPU]+ +[ELAPSD]+ +[COMMAND]+ +[COMMAND]+"] > /dev/null
+then
+	ac_cv_ps_varlist="[procstat,&procuid,&procpid,&procppid,&procpcpu,procetime,procprog,&pos]"
+	ac_cv_ps_command="/sbin/ps -eo 'stat uid pid ppid pcpu etime comm args'"
+	ac_cv_ps_format=["%s%*[ +<>] %d %d %d %f %s %s %n"]
+	ac_cv_ps_cols=8
+	AC_MSG_RESULT([$ac_cv_ps_command])
+
+elif ps -eo 's comm vsz rss user uid pid ppid args' 2>/dev/null | \
+	egrep -i ["^S[TAUES]* +C[OMDNA]+ +[VSIZE]+ +U[SER]+ +U[ID]+ +P[PID]+ +P[PID]+ +[RGSCOMDNA]+"] >/dev/null
+then
+	ac_cv_ps_varlist="[procstat,&procuid,&procpid,&procppid,&procvsz,&procrss,&procpcpu,procprog,&pos]"
+	ac_cv_ps_command="$PATH_TO_PS -eo 's uid pid ppid vsz rss pcpu comm args'"
+	ac_cv_ps_format="%s %d %d %d %d %d %f %s %n"
+	ac_cv_ps_cols=9
+	AC_MSG_RESULT([$ac_cv_ps_command])
+
+dnl AIX 4.3.3 and 5.1 do not have an rss field
+elif ps -eo 'stat uid pid ppid vsz pcpu comm args' 2>/dev/null | \
+	egrep -i ["^ *S[TAUES]* +UID +PID +PPID +VSZ +%CPU +COMMAND +COMMAND"] >/dev/null
+then
+	ac_cv_ps_varlist="[procstat,&procuid,&procpid,&procppid,&procvsz,&procpcpu,procprog,&pos]"
+	ac_cv_ps_command="$PATH_TO_PS -eo 'stat uid pid ppid vsz pcpu comm args'"
+	ac_cv_ps_format="%s %d %d %d %d %f %s %n"
+	ac_cv_ps_cols=8
+	AC_MSG_RESULT([$ac_cv_ps_command - with no RSS])
+
+dnl Solaris 2.6
+elif ps -Ao 's comm vsz rss uid user pid ppid args' 2>/dev/null | \
+	egrep -i ["^S[TAUES]* +C[OMDNA]+ +V[SIZE]+ +RSS +UID +USER +PID +PPID +[RGSCOMDNA]+"] >/dev/null
+then
+	ac_cv_ps_varlist="[procstat,&procuid,&procpid,&procppid,&procvsz,&procrss,&procpcpu,procprog,&pos]"
+	ac_cv_ps_command="$PATH_TO_PS -Ao 's uid pid ppid vsz rss pcpu comm args'"
+	# There must be no space between the %s and %n due to a wierd problem in sscanf where
+	# it will return %n as longer than the line length
+	ac_cv_ps_format="%s %d %d %d %d %d %f %s%n"
+	ac_cv_ps_cols=9
+	AC_MSG_RESULT([$ac_cv_ps_command])
+
+elif ps -Ao 'status comm vsz rss uid user pid ppid args' 2>/dev/null | \
+	egrep -i ["^S[TAUES]* +C[OMDNA]+ +V[SIZE]+ +RSS +UID +USER +PID +PPID +[RGSCOMDNA]+"] >/dev/null
+then
+	ac_cv_ps_varlist="[procstat,&procuid,&procpid,&procppid,&procvsz,&procrss,&procpcpu,procprog,&pos]"
+	ac_cv_ps_command="$PATH_TO_PS -Ao 'status uid pid ppid vsz rss pcpu comm args'"
+	ac_cv_ps_format="%s %d %d %d %d %d %f %s %n"
+	ac_cv_ps_cols=9
+	AC_MSG_RESULT([$ac_cv_ps_command])
+
+elif ps -Ao 'state comm vsz rss uid user pid ppid args' 2>/dev/null | \
+	egrep -i ["^S[TAUES]* +C[OMDNA]+ +V[SIZE]+ +RSS +UID +USER +PID +PPID +[RGSCOMDNA]+"] >/dev/null
+then
+	ac_cv_ps_varlist="[procstat,&procuid,&procpid,&procppid,&procvsz,&procrss,&procpcpu,procprog,&pos]"
+	ac_cv_ps_command="$PATH_TO_PS -Ao 'state uid pid ppid vsz rss pcpu comm args'"
+	ac_cv_ps_format="%s %d %d %d %d %d %f %s %n"
+	ac_cv_ps_cols=9
+	AC_MSG_RESULT([$ac_cv_ps_command])
+
+dnl wonder who takes state instead of stat
+elif ps -ao 'state command vsz rss user pid ppid args' 2>/dev/null | \
+	egrep -i ["^S[TAUES]* +C[OMDNA]+ +V[SIZE]+ +RSS +UID +USER +PID +PPID +[RGSCOMDNA]+"] >/dev/null
+then
+	ac_cv_ps_varlist="[procstat,&procuid,&procpid,&procppid,&procvsz,&procrss,&procpcpu,procprog,&pos]"
+	ac_cv_ps_command="$PATH_TO_PS -ao 'state uid pid ppid vsz rss pcpu command args'"
+	ac_cv_ps_format="%s %d %d %d %d %d %f %s %n"
+	ac_cv_ps_cols=8
+	AC_MSG_RESULT([$ac_cv_ps_command])
+
+dnl IRIX 53
+elif ps -el 2>/dev/null | \
+	egrep -i ["^ *F +S +UID +PID +PPID +C +PRI +NI +P +SZ +RSS +WCHAN +TTY +TIME +[RGSCOMDNA]+"] >/dev/null
+then
+	ac_cv_ps_varlist="[procstat,&procuid,&procpid,&procppid,&procvsz,&procrss,&pos,procprog]"
+	ac_cv_ps_command="$PATH_TO_PS -el (IRIX 53)"
+	ac_cv_ps_format="%*s %s %d %d %d %*s %*s %*s %*s %d %d %*s %*s %*s %n%s"
+	ac_cv_ps_cols=8
+	AC_MSG_RESULT([$ac_cv_ps_command])
+
+dnl IRIX 63
+elif ps -el 2>/dev/null | \
+	egrep -i ["^ *F +S +UID +PID +PPID +C +PRI +NI +P +ADDR +SZ +RSS +WCHAN +TTY +TIME +[RGSCOMDNA]+"] >/dev/null
+then
+	ac_cv_ps_varlist="[procstat,&procuid,&procpid,&procppid,&pos,procprog]"
+	ac_cv_ps_command="$PATH_TO_PS -el (IRIX 63)"
+	ac_cv_ps_format="%*s %s %d %d %d %*s %*s %*s %*s %*s %*s %*s %*s %*s %*s %n%s"
+	ac_cv_ps_cols=6
+	AC_MSG_RESULT([$ac_cv_ps_command])
+
+dnl AIX 4.1:
+dnl     F S      UID   PID  PPID   C PRI NI ADDR  SZ  RSS   WCHAN    TTY  TIME CMD
+dnl    303 A        0     0     0 120  16 -- 1c07  20   24              -  0:45 swapper
+elif ps -el 2>/dev/null | \
+	egrep -i ["^ *F +S +UID +PID +PPID +C +PRI +NI +ADDR +SZ +WCHAN +TTY +TIME +[RGSCOMDNA]+"] >/dev/null
+then
+	ac_cv_ps_varlist="[procstat,&procuid,&procpid,&procppid,&pos,procprog]"
+	ac_cv_ps_command="$PATH_TO_PS -el (AIX 4.1 and HP-UX)"
+	ac_cv_ps_format="%*s %s %d %d %d %*s %*s %*s %*s %*s %*s %*s %*s %n%s"
+	ac_cv_ps_cols=6
+	AC_MSG_RESULT([$ac_cv_ps_command])
+
+dnl AIX?
+elif ps glaxen 2>/dev/null | \
+	egrep -i ["^ *F +UID +PID +PPID +PRI +NI +VSZ +RSS +WCHAN +STAT +TTY +TIME +COMMAND"] >/dev/null
+then
+	ac_cv_ps_varlist="[&procuid,&procpid,&procppid,&procvsz,&procrss,procstat,&pos,procprog]"
+	ac_cv_ps_command="$PATH_TO_PS glaxen"
+	ac_cv_ps_format="%*s %d %d %d %*s %*s %d %d %*s %s %*s %*s %n%s"
+	ac_cv_ps_cols=8
+	AC_MSG_RESULT([$ac_cv_ps_command])
+
+dnl MacOSX / Darwin
+dnl TODO: MacOSX has commands with spaces which will cause problems to PS_FORMAT
+dnl Some truncation will happen in UCOMM column
+dnl STAT      VSZ    RSS   UID  PPID %CPU UCOMM            COMMAND
+dnl Ss      52756  22496   501     1   6.9 Window Manager   /System/Library/CoreServices/WindowServer -daemon
+elif ps wwaxo 'state vsz rss uid pid ppid pcpu ucomm command' 2>/dev/null | \
+	egrep -i ["^STAT +VSZ +RSS +UID +PPID +%CPU +UCOMM +COMMAND"] >/dev/null
+then
+	ac_cv_ps_command="$PATH_TO_PS wwaxo 'state vsz rss uid pid ppid pcpu ucomm command'"
+	ac_cv_ps_varlist="[procstat,&procvsz,&procrss,&procuid,&procpid,&procppid,&procpcpu,procprog,&pos]"
+	ac_cv_ps_format="%s %d %d %d %d %d %f %s %n"
+	ac_cv_ps_cols=8
+	AC_MSG_RESULT([$ac_cv_ps_command])
+
+dnl UnixWare 
+elif ps -Al 2>/dev/null | \
+	egrep -i ["^ *F +S +UID +PID +PPID +CLS +PRI +NI +C +ADDR +SZ +WCHAN +TTY +TIME +COMD"] >/dev/null
+then
+	ac_cv_ps_varlist="[procstat,&procuid,&procpid,&procppid,&pos,procprog]"
+	ac_cv_ps_command="$PATH_TO_PS -Al"
+	ac_cv_ps_format="%*s %s %d %d %d %*s %*s %*s %*s %*s %*s %*s %*s %*s %n%s"
+	ac_cv_ps_cols=8
+	AC_MSG_RESULT([$ac_cv_ps_command])
+
+else
+	AC_MSG_WARN([unable to find usable ps syntax - check_procs and check_nagios will not be compiled])
+fi
+
+if test -n "$ac_cv_ps_varlist" ; then
+	AC_DEFINE_UNQUOTED(PS_VARLIST,$ac_cv_ps_varlist,
+		[Variable list for sscanf of 'ps' output])
+	AC_DEFINE_UNQUOTED(PS_COMMAND,"$ac_cv_ps_command",
+		[Verbatim command to execute for ps in check_procs])
+	AC_DEFINE_UNQUOTED(PS_FORMAT,"$ac_cv_ps_format",
+		[Format string for scanning ps output in check_procs])
+	AC_DEFINE_UNQUOTED(PS_COLS,$ac_cv_ps_cols,
+		[Number of columns in ps command])
+	EXTRAS="$EXTRAS check_procs check_nagios"
+	if echo "$ac_cv_ps_varlist" | grep "procetime" >/dev/null; then
+		AC_DEFINE(PS_USES_PROCETIME,"yes",
+		          [Whether the ps utility uses the "procetime" field])
+	fi
+fi
+
+AC_PATH_PROG(PATH_TO_PING,ping)
+AC_PATH_PROG(PATH_TO_PING6,ping6)
+
+AC_ARG_WITH(ping_command,
+	ACX_HELP_STRING([--with-ping-command=SYNTAX],
+		[sets syntax for ICMP ping]),
+	with_ping_command=$withval,)
+
+AC_MSG_CHECKING(for ICMP ping syntax)
+ac_cv_ping_packets_first=no
+ac_cv_ping_has_timeout=no
+if test -n "$with_ping_command"
+then
+	AC_MSG_RESULT([(command-line) $with_ping_command])
+	if test -n "$ac_cv_ping_packets_first"
+	then
+		ac_cv_ping_packets_first=yes
+		ac_cv_ping_has_timeout=yes
+	fi
+
+elif [[ "z$ac_cv_uname_s" = "zUnixWare" ]] && \
+	$PATH_TO_PING -n -s 127.0.0.1 56 1 2>/dev/null | \
+	egrep -i "^round-trip|^rtt" >/dev/null
+then
+        with_ping_command="$PATH_TO_PING -n -U -c %d %s"
+	ac_cv_ping_packets_first=yes
+	AC_MSG_RESULT([$with_ping_command])
+
+elif $PATH_TO_PING -n -U -w 10 -c 1 127.0.0.1 2>/dev/null | \
+	egrep -i "^round-trip|^rtt" >/dev/null
+then
+        with_ping_command="$PATH_TO_PING -n -U -w %d -c %d %s"
+	ac_cv_ping_packets_first=yes
+  ac_cv_ping_has_timeout=yes
+	AC_MSG_RESULT([$with_ping_command])
+
+elif $PATH_TO_PING -n -U -c 1 127.0.0.1 2>/dev/null | \
+	egrep -i "^round-trip|^rtt" >/dev/null
+then
+        with_ping_command="$PATH_TO_PING -n -U -c %d %s"
+	ac_cv_ping_packets_first=yes
+	AC_MSG_RESULT([$with_ping_command])
+
+elif $PATH_TO_PING -n -c 1 127.0.0.1 2>/dev/null | \
+	egrep -i "^round-trip|^rtt" >/dev/null
+then
+	with_ping_command="$PATH_TO_PING -n -c %d %s"
+	ac_cv_ping_packets_first=yes
+	AC_MSG_RESULT([$with_ping_command])
+
+elif $PATH_TO_PING -n 127.0.0.1 -c 1 2>/dev/null | \
+	egrep -i "^round-trip|^rtt" >/dev/null
+then
+	with_ping_command="$PATH_TO_PING -n %s -c %d"
+	AC_MSG_RESULT([$with_ping_command])
+
+elif $PATH_TO_PING 127.0.0.1 -n 1 2>/dev/null | \
+	egrep -i "^round-trip|^rtt" >/dev/null
+then
+	with_ping_command="$PATH_TO_PING %s -n %d"
+	AC_MSG_RESULT([$with_ping_command])
+
+elif $PATH_TO_PING -n -s 127.0.0.1 56 1 2>/dev/null | \
+	egrep -i "^round-trip|^rtt" >/dev/null
+then
+	with_ping_command="$PATH_TO_PING -n -s %s 56 %d"
+	AC_MSG_RESULT([$with_ping_command])
+
+elif $PATH_TO_PING -n -h 127.0.0.1 -s 56 -c 1 2>/dev/null | \
+	egrep -i "^round-trip|^rtt" >/dev/null
+then
+	with_ping_command="$PATH_TO_PING -n -h %s -s 56 -c %d"
+	AC_MSG_RESULT([$with_ping_command])
+
+elif $PATH_TO_PING -n -s 56 -c 1 127.0.0.1 2>/dev/null | \
+	egrep -i "^round-trip|^rtt" >/dev/null
+then
+	with_ping_command="$PATH_TO_PING -n -s 56 -c %d %s"
+	ac_cv_ping_packets_first=yes
+	AC_MSG_RESULT([$with_ping_command])
+
+elif $PATH_TO_PING -n -c 1 127.0.0.1 2>/dev/null | \
+	egrep -i "^round-trip|^rtt" >/dev/null
+then
+	with_ping_command="$PATH_TO_PING -n -c %d %s"
+	ac_cv_ping_packets_first=yes
+	AC_MSG_RESULT([$with_ping_command])
+
+else
+	AC_MSG_WARN([unable to find usable ping syntax])
+fi
+
+AC_DEFINE_UNQUOTED(PING_COMMAND,"$with_ping_command",
+	[path and args for ICMP ping command])
+
+if test "x$ac_cv_ping_packets_first" != "xno"
+then
+	AC_DEFINE(PING_PACKETS_FIRST,1,
+		[Define if packet count must precede host])
+fi
+
+if test "x$ac_cv_ping_has_timeout" != "xno"
+then
+	AC_DEFINE(PING_HAS_TIMEOUT,1,
+		[Define if ping has its own timeout option that should be set])
+fi
+
+AC_ARG_WITH(ping6_command,
+	ACX_HELP_STRING([--with-ping6-command=SYNTAX],
+		[sets syntax for ICMPv6 ping]),
+	with_ping6_command=$withval,)
+
+if test x"$with_ipv6" != xno ; then
+AC_MSG_CHECKING(for ICMPv6 ping syntax)
+ac_cv_ping6_packets_first=no
+if test -n "$with_ping6_command"
+then
+	AC_MSG_RESULT([(command-line) $with_ping6_command])
+	if test -n "$ac_cv_ping6_packets_first"
+	then
+		ac_cv_ping6_packets_first=yes
+	fi
+
+elif test "x$PATH_TO_PING6" != "x"; then
+	if [[ "z$ac_cv_uname_s" = "zUnixWare" ]] && \
+		$PATH_TO_PING6 -n -s ::1 56 1 2>/dev/null | \
+		egrep -i "^round-trip|^rtt" >/dev/null
+	then
+        	with_ping6_command="$PATH_TO_PING6 -n -U -c %d %s"
+		ac_cv_ping6_packets_first=yes
+		AC_MSG_RESULT([$with_ping6_command])
+
+	elif $PATH_TO_PING6 -n -U -w 10 -c 1 ::1 2>/dev/null | \
+		egrep -i "^round-trip|^rtt" >/dev/null
+	then
+		with_ping6_command="$PATH_TO_PING6 -n -U -w %d -c %d %s"
+		ac_cv_ping6_packets_first=yes
+		ac_cv_ping_has_timeout=yes
+		AC_MSG_RESULT([$with_ping6_command])
+
+	elif $PATH_TO_PING6 -n -U -c 1 ::1 2>/dev/null | \
+		egrep -i "^round-trip|^rtt" >/dev/null
+	then
+        	with_ping6_command="$PATH_TO_PING6 -n -U -c %d %s"
+		ac_cv_ping6_packets_first=yes
+		AC_MSG_RESULT([$with_ping6_command])
+
+	elif $PATH_TO_PING6 -n -c 1 ::1 2>/dev/null | \
+		egrep -i "^round-trip|^rtt" >/dev/null
+	then
+		with_ping6_command="$PATH_TO_PING6 -n -c %d %s"
+		ac_cv_ping6_packets_first=yes
+		AC_MSG_RESULT([$with_ping6_command])
+
+	elif $PATH_TO_PING6 -n ::1 -c 1 2>/dev/null | \
+		egrep -i "^round-trip|^rtt" >/dev/null
+	then
+		with_ping6_command="$PATH_TO_PING6 -n %s -c %d"
+		AC_MSG_RESULT([$with_ping6_command])
+
+	elif $PATH_TO_PING6 ::1 -n 1 2>/dev/null | \
+		egrep -i "^round-trip|^rtt" >/dev/null
+	then
+		with_ping6_command="$PATH_TO_PING6 %s -n %d"
+		AC_MSG_RESULT([$with_ping6_command])
+
+	elif $PATH_TO_PING6 -n -s ::1 56 1 2>/dev/null | \
+		egrep -i "^round-trip|^rtt" >/dev/null
+	then
+		with_ping6_command="$PATH_TO_PING6 -n -s %s 56 %d"
+		AC_MSG_RESULT([$with_ping6_command])
+
+	elif $PATH_TO_PING6 -n -h ::1 -s 56 -c 1 2>/dev/null | \
+		egrep -i "^round-trip|^rtt" >/dev/null
+	then
+		with_ping6_command="$PATH_TO_PING6 -n -h %s -s 56 -c %d"
+		AC_MSG_RESULT([$with_ping6_command])
+
+	elif $PATH_TO_PING6 -n -s 56 -c 1 ::1 2>/dev/null | \
+		egrep -i "^round-trip|^rtt" >/dev/null
+	then
+		with_ping6_command="$PATH_TO_PING6 -n -s 56 -c %d %s"
+		ac_cv_ping6_packets_first=yes
+		AC_MSG_RESULT([$with_ping_command])
+
+	elif $PATH_TO_PING6 -n -c 1 ::1 2>/dev/null | \
+		egrep -i "^round-trip|^rtt" >/dev/null
+	then
+		with_ping6_command="$PATH_TO_PING6 -n -c %d %s"
+		ac_cv_ping6_packets_first=yes
+		AC_MSG_RESULT([$with_ping6_command])
+
+	fi
+
+elif test "x$PATH_TO_PING" != "x"; then
+	if [[ "z$ac_cv_uname_s" = "zUnixWare" ]] && \
+		$PATH_TO_PING -A inet6 -n -s ::1 56 1 2>/dev/null | \
+		egrep -i "^round-trip|^rtt" >/dev/null
+	then
+        	with_ping6_command="$PATH_TO_PING -A inet6 -n -U -c %d %s"
+		ac_cv_ping6_packets_first=yes
+		AC_MSG_RESULT([$with_ping6_command])
+
+	elif $PATH_TO_PING -A inet6 -n -U -c 1 ::1 2>/dev/null | \
+		egrep -i "^round-trip|^rtt" >/dev/null
+	then
+        	with_ping6_command="$PATH_TO_PING -A inet6 -n -U -c %d %s"
+		ac_cv_ping6_packets_first=yes
+		AC_MSG_RESULT([$with_ping6_command])
+
+	elif $PATH_TO_PING -A inet6 -n -c 1 ::1 2>/dev/null | \
+		egrep -i "^round-trip|^rtt" >/dev/null
+	then
+		with_ping6_command="$PATH_TO_PING -A inet6 -n -c %d %s"
+		ac_cv_ping6_packets_first=yes
+		AC_MSG_RESULT([$with_ping6_command])
+
+	elif $PATH_TO_PING -A inet6 -n ::1 -c 1 2>/dev/null | \
+		egrep -i "^round-trip|^rtt" >/dev/null
+	then
+		with_ping6_command="$PATH_TO_PING -A inet6 -n %s -c %d"
+		AC_MSG_RESULT([$with_ping6_command])
+
+	elif $PATH_TO_PING -A inet6 ::1 -n 1 2>/dev/null | \
+		egrep -i "^round-trip|^rtt" >/dev/null
+	then
+		with_ping6_command="$PATH_TO_PING -A inet6 %s -n %d"
+		AC_MSG_RESULT([$with_ping6_command])
+
+	elif $PATH_TO_PING -A inet6 -n -s ::1 56 1 2>/dev/null | \
+		egrep -i "^round-trip|^rtt" >/dev/null
+	then
+		with_ping6_command="$PATH_TO_PING -A inet6 -n -s %s 56 %d"
+		AC_MSG_RESULT([$with_ping6_command])
+
+	elif $PATH_TO_PING -A inet6 -n -h ::1 -s 56 -c 1 2>/dev/null | \
+		egrep -i "^round-trip|^rtt" >/dev/null
+	then
+		with_ping6_command="$PATH_TO_PING -A inet6 -n -h %s -s 56 -c %d"
+		AC_MSG_RESULT([$with_ping6_command])
+
+	elif $PATH_TO_PING -A inet6 -n -s 56 -c 1 ::1 2>/dev/null | \
+		egrep -i "^round-trip|^rtt" >/dev/null
+	then
+		with_ping6_command="$PATH_TO_PING -A inet6 -n -s 56 -c %d %s"
+		ac_cv_ping6_packets_first=yes
+		AC_MSG_RESULT([$with_ping_command])
+
+	elif $PATH_TO_PING -A inet6 -n -c 1 ::1 2>/dev/null | \
+		egrep -i "^round-trip|^rtt" >/dev/null
+	then
+		with_ping6_command="$PATH_TO_PING -A inet6 -n -c %d %s"
+		ac_cv_ping6_packets_first=yes
+		AC_MSG_RESULT([$with_ping6_command])
+
+	fi
+
+fi
+
+if test "x$with_ping6_command" != "x"; then
+	AC_DEFINE_UNQUOTED(PING6_COMMAND,"$with_ping6_command",
+		[path and args for ICMPv6 ping command])
+else
+	AC_MSG_RESULT([none])
+fi
+
+if test "x$ac_cv_ping6_packets_first" != "xno"; then
+	AC_DEFINE(PING6_PACKETS_FIRST,1,
+		[Define if packet count must precede host])
+fi
+fi
+
+
+AC_ARG_WITH(nslookup_command,
+            ACX_HELP_STRING([--with-nslookup-command=PATH],
+                            [sets path to nslookup executable]),
+            ac_cv_nslookup_command=$withval)
+if test -n "$ac_cv_nslookup_command"; then
+	AC_MSG_NOTICE([Using specific nslookup at $ac_cv_nslookup_command])
+else
+	AC_PATH_PROG(PATH_TO_NSLOOKUP,nslookup)
+	if test -n "$PATH_TO_NSLOOKUP"
+	then
+		AC_MSG_CHECKING(for nslookup syntax)
+		if $PATH_TO_NSLOOKUP -sil 127.0.0.1 2>&1 | grep ["Invalid option: sil"] >/dev/null
+		then
+			ac_cv_nslookup_command="$PATH_TO_NSLOOKUP"
+			AC_MSG_RESULT([$ac_cv_nslookup_command])
+
+		else
+			ac_cv_nslookup_command="$PATH_TO_NSLOOKUP -sil"
+			AC_MSG_RESULT([$ac_cv_nslookup_command])
+
+		fi
+	else
+		AC_MSG_WARN([nslookup command not found])
+	fi
+fi
+
+if test -n "$ac_cv_nslookup_command"; then
+	EXTRAS="$EXTRAS check_dns"
+	AC_DEFINE_UNQUOTED(NSLOOKUP_COMMAND,"$ac_cv_nslookup_command", [path and args for nslookup])
+fi
+
+AC_MSG_CHECKING([for number of cpus])
+AC_TRY_COMPILE([#include <unistd.h>],
+	[sysconf(_SC_NPROCESSORS_CONF) > 0;],
+	AC_DEFINE(HAVE_SYSCONF__SC_NPROCESSORS_CONF,1,[Define if sysconf returns number of cpus])
+	AC_MSG_RESULT([sysconf(_SC_NPROCESSORS_CONF)]),
+	AC_MSG_RESULT([cannot calculate])
+	)
+
+AC_PATH_PROG(PATH_TO_UPTIME,uptime)
+AC_ARG_WITH(uptime_command,
+            ACX_HELP_STRING([--with-uptime-command=PATH],
+                            [sets path to uptime]), PATH_TO_UPTIME=$withval)
+AC_DEFINE_UNQUOTED(PATH_TO_UPTIME,"$PATH_TO_UPTIME",[path to uptime binary])
+
+AC_PATH_PROG(PATH_TO_RPCINFO,rpcinfo)
+AC_ARG_WITH(rpcinfo_command,
+            ACX_HELP_STRING([--with-rpcinfo-command=PATH],
+                            [sets path to rpcinfo]), PATH_TO_RPCINFO=$withval)
+AC_DEFINE_UNQUOTED(PATH_TO_RPCINFO,"$PATH_TO_RPCINFO",[path to rpcinfo binary])
+
+AC_PATH_PROG(PATH_TO_LMSTAT,lmstat)
+if test -x "$PATH_TO_LMSTAT"
+then
+	AC_DEFINE_UNQUOTED(PATH_TO_LMSTAT,"$PATH_TO_LMSTAT",[path to lmstat])
+else
+	AC_MSG_WARN([Get lmstat from Globetrotter Software to monitor flexlm licenses])
+fi
+
+AC_PATH_PROG(PATH_TO_SMBCLIENT,smbclient)
+AC_ARG_WITH(smbclient_command,
+            ACX_HELP_STRING([--with-smbclient-command=PATH],
+                            [sets path to smbclient]), 
+            PATH_TO_SMBCLIENT=$withval)
+if test -n "$PATH_TO_SMBCLIENT"
+then
+	AC_DEFINE_UNQUOTED(PATH_TO_SMBCLIENT,"$PATH_TO_SMBCLIENT",[path to smbclient binary])
+else
+	AC_MSG_WARN([Get smbclient from Samba.org to monitor SMB shares])
+fi
+
+
+AC_PATH_PROG(PATH_TO_WHO,who)
+
+if [$PATH_TO_WHO -q 2>/dev/null | egrep -i "^# users=[0-9]+$" >/dev/null]
+then
+	ac_cv_path_to_who="$PATH_TO_WHO -q"
+else
+	ac_cv_path_to_who="$PATH_TO_WHO"
+fi
+
+AC_DEFINE_UNQUOTED(WHO_COMMAND,"$ac_cv_path_to_who",
+	[path and arguments for invoking 'who'])
+
+AC_PATH_PROG(PATH_TO_SNMPGET,snmpget)
+AC_ARG_WITH(snmpget_command,
+            ACX_HELP_STRING([--with-snmpget-command=PATH],
+                            [Path to snmpget command]),
+            PATH_TO_SNMPGET=$withval)
+if test -n "$PATH_TO_SNMPGET"
+then
+	AC_DEFINE_UNQUOTED(PATH_TO_SNMPGET,"$PATH_TO_SNMPGET",[path to snmpget binary])
+	EXTRAS="$EXTRAS check_hpjd check_snmp"
+else
+	AC_MSG_WARN([Get snmpget from http://net-snmp.sourceforge.net to make check_hpjd and check_snmp plugins])
+fi
+
+AC_PATH_PROG(PATH_TO_SNMPGETNEXT,snmpgetnext)
+AC_ARG_WITH(snmpgetnext_command,
+            ACX_HELP_STRING([--with-snmpgetnext-command=PATH],
+                            [Path to snmpgetnext command]),
+            PATH_TO_SNMPGETNEXT=$withval)
+if test -n "$PATH_TO_SNMPGETNEXT"
+then
+	AC_DEFINE_UNQUOTED(PATH_TO_SNMPGETNEXT,"$PATH_TO_SNMPGETNEXT",[path to snmpgetnext binary])
+fi
+
+if ( $PERL -M"Net::SNMP 3.6" -e 'exit' 2>/dev/null  )
+then
+	AC_MSG_CHECKING(for Net::SNMP perl module)
+	AC_MSG_RESULT([found])
+else
+	AC_MSG_WARN([Tried $PERL - install Net::SNMP perl module if you want to use the perl snmp plugins])
+fi
+
+AC_PATH_PROG(PATH_TO_QUAKESTAT,quakestat)
+AC_PATH_PROG(PATH_TO_QSTAT,qstat)
+AC_ARG_WITH(qstat_command,
+            ACX_HELP_STRING([--with-qstat-command=PATH], 
+                            [Path to qstat command]), PATH_TO_QSTAT=$withval)
+
+if test -x "$PATH_TO_QUAKESTAT"
+then
+	ac_cv_path_to_qstat="$PATH_TO_QUAKESTAT"
+	EXTRAS="$EXTRAS check_game"
+
+elif test -n "$PATH_TO_QSTAT"
+then
+	ac_cv_path_to_qstat="$PATH_TO_QSTAT"
+	EXTRAS="$EXTRAS check_game"
+else
+	AC_MSG_WARN([Get qstat from http://www.activesw.com/people/steve/qstat.html in order to make check_game plugin])
+fi
+
+if test $ac_cv_path_to_qstat 
+then
+	AC_DEFINE_UNQUOTED(PATH_TO_QSTAT,"$ac_cv_path_to_qstat",
+		[path to qstat/quakestat])
+fi
+
+AC_PATH_PROG(PATH_TO_FPING,fping)
+AC_ARG_WITH(fping_command,
+            ACX_HELP_STRING([--with-fping-command=PATH],
+                            [Path to fping command]), PATH_TO_FPING=$withval)
+if test -n "$PATH_TO_FPING"
+then
+	AC_DEFINE_UNQUOTED(PATH_TO_FPING,"$PATH_TO_FPING",[path to fping])
+	EXTRAS="$EXTRAS check_fping"
+else
+	AC_MSG_WARN([Get fping from http://www.fping.com in order to make check_fping plugin])
+fi
+
+AC_PATH_PROG(PATH_TO_SSH,ssh)
+AC_ARG_WITH(ssh_command,
+            ACX_HELP_STRING([--with-ssh-command=PATH],
+                            [sets path for ssh]), PATH_TO_SSH=$withval)
+if test -n "$PATH_TO_SSH"
+then
+	AC_DEFINE_UNQUOTED(SSH_COMMAND,"$PATH_TO_SSH",[path to ssh binary])
+	EXTRAS="$EXTRAS check_by_ssh"
+else
+	AC_MSG_WARN([Get ssh in order to make check_by_ssh plugin])
+fi
+
+
+AC_PATH_PROG(PATH_TO_MAILQ,mailq)
+AC_ARG_WITH(mailq_command,
+            ACX_HELP_STRING([--with-mailq-command=PATH],
+                            [sets path to mailq]), PATH_TO_MAILQ=$withval)
+if test -n "$PATH_TO_MAILQ"
+then
+	AC_DEFINE_UNQUOTED(PATH_TO_MAILQ,"$PATH_TO_MAILQ",[path to mailq])
+else
+	AC_MSG_WARN([Could not find mailq or eqivalent])
+fi
+
+AC_PATH_PROG(PATH_TO_QMAIL_QSTAT,qmail-qstat)
+if test -x "$PATH_TO_QMAIL_QSTAT"
+then
+	AC_DEFINE_UNQUOTED(PATH_TO_MAILQ,"$PATH_TO_QMAIL_QSTAT",[path to qmail-qstat])
+else
+	AC_MSG_WARN([Could not find qmail-qstat or eqivalent])
+fi
+
+dnl SWAP info required is amount allocated/available and amount free
+dnl The plugin works through all the swap devices and adds up the total swap
+dnl available.
+AC_PATH_PROG(PATH_TO_SWAP,swap)
+if (test -n "$PATH_TO_SWAP")
+then
+AC_MSG_CHECKING([for $PATH_TO_SWAP format])
+if [$PATH_TO_SWAP -l 2>&1 >/dev/null]
+then
+	ac_cv_have_swap=yes
+	ac_cv_swap_command="$PATH_TO_SWAP -l"
+	if [$PATH_TO_SWAP -l 2>/dev/null | \
+		egrep -i "^lswap +path +pri +swaplo +blocks +free +maxswap" \
+		>/dev/null]
+	then
+		ac_cv_swap_format=[" %*d %*s %*d,%*d %*d %*d %f %f"]
+		ac_cv_swap_conv=2048
+		AC_MSG_RESULT([using IRIX format swap])
+
+	elif [$PATH_TO_SWAP -l 2>/dev/null | egrep -i "^path +dev +swaplo +blocks +free" >/dev/null]
+	then
+		ac_cv_swap_format=["%*s %*[0-9,-] %*d %f %f"]
+		ac_cv_swap_conv=2048
+		AC_MSG_RESULT([using Unixware format swap])
+	else
+		dnl if we don't know what format swap's output is
+		dnl we might as well pretend we didn't see it
+		ac_cv_have_swap=""
+		ac_cv_swap_command=""
+	fi
+fi
+dnl end if for PATH_TO_SWAP
+fi
+
+AC_PATH_PROG(PATH_TO_SWAPINFO,swapinfo)
+if (test -n "$PATH_TO_SWAPINFO")
+then
+AC_MSG_CHECKING([for $PATH_TO_SWAPINFO format])
+if [$PATH_TO_SWAPINFO -k 2>&1 | egrep -i "^Device" >/dev/null]
+then
+	ac_cv_have_swap=yes
+	ac_cv_swap_command="$PATH_TO_SWAPINFO -k"
+
+	if [$PATH_TO_SWAPINFO -k 2>/dev/null | egrep -i "^Device +1K-blocks +Used +Avail" >/dev/null]
+	then
+		ac_cv_swap_format=["%*s %f %*d %f"]
+		ac_cv_swap_conv=1024
+		AC_MSG_RESULT([using FreeBSD format swapinfo])
+	fi
+
+elif [$PATH_TO_SWAPINFO -dfM 2>/dev/null | egrep -i "^TYPE +AVAIL +USED +FREE" >/dev/null]
+then
+	ac_cv_have_swap=yes
+	ac_cv_swap_command="$PATH_TO_SWAPINFO -dfM"
+	ac_cv_swap_format=["%*s %f %*d %f"]
+	ac_cv_swap_conv=1024
+	AC_MSG_RESULT([using HP-UX format swapinfo])
+fi
+dnl end if for PATH_TO_SWAPINFO
+fi
+
+AC_PATH_PROG(PATH_TO_LSPS,lsps)
+if (test -n "$PATH_TO_LSPS")
+then
+AC_MSG_CHECKING([for $PATH_TO_LSPS format])
+if [$PATH_TO_LSPS -a 2>/dev/null | egrep -i "^Page Space" > /dev/null]
+then
+	ac_cv_have_swap=yes
+	ac_cv_swap_command="$PATH_TO_LSPS -a"
+	ac_cv_swap_format=["%*s %*s %*s %f%*s %f %*s"]
+	ac_cv_swap_conv=1
+	AC_MSG_RESULT([using AIX lsps])
+fi
+dnl end if for PATH_TO_SWAPINFO
+fi
+
+dnl
+dnl test for swapctl system call, both the 2-arg and 3-arg variants
+dnl fwict, the 2-arg is an SVR4 standard, whereas the 3-arg is shared
+dnl in the various BSD's
+dnl
+
+AC_CHECK_HEADERS([sys/stat.h sys/param.h])
+AC_CHECK_HEADERS([sys/swap.h], [], [], [
+#ifdef HAVE_SYS_PARAM_H
+#include <sys/param.h>
+#endif
+])
+AC_CHECK_DECLS([swapctl],,,[
+               #include <unistd.h>
+               #include <sys/types.h>
+	       #include <sys/param.h>
+               #include <sys/stat.h>
+               #include <sys/swap.h>
+               ])
+AC_CHECK_TYPES([swaptbl_t, swapent_t],,,[
+               #include <sys/types.h>
+	       #include <sys/param.h>
+               #include <sys/stat.h>
+               #include <sys/swap.h>
+               ])
+AC_CHECK_MEMBERS([struct swapent.se_nblks],,,[
+               #include <unistd.h>
+               #include <sys/types.h>
+	       #include <sys/param.h>
+               #include <sys/stat.h>
+               #include <sys/swap.h>
+               ])
+
+if test "$ac_cv_have_decl_swapctl" = "yes"; 
+then
+	EXTRAS="$EXTRAS check_swap"
+	AC_MSG_CHECKING([for 2-arg (SVR4) swapctl])
+	if test "$ac_cv_type_swaptbl_t" = "yes" -a \
+	        "$ac_cv_type_swapent_t" = "yes"; 
+	then
+		AC_MSG_RESULT([yes])
+		ac_cv_check_swap_swapctl_svr4="1";
+		AC_DEFINE([CHECK_SWAP_SWAPCTL_SVR4],1,
+		          [Define if 2-argument SVR4 swapctl exists])
+	else
+		AC_MSG_RESULT([no])
+		AC_MSG_CHECKING([for 3-arg (*BSD) swapctl])
+		if test "$ac_cv_member_struct_swapent_se_nblks" = "yes"; 
+		then
+			AC_MSG_RESULT([yes])
+			AC_DEFINE([CHECK_SWAP_SWAPCTL_BSD],1,
+			          [Define if 3-argument BSD swapctl exists])
+		else
+			AC_MSG_RESULT([no])
+		fi
+	fi
+	AC_MSG_CHECKING([for whether swapctl uses blocks or pages])
+	if test "$ac_cv_check_swap_swapctl_svr4" = "1";
+	then
+		dnl
+		dnl the SVR4 spec returns values in pages
+		dnl
+		AC_MSG_RESULT([page])
+		AC_CHECK_DECLS([sysconf])
+		AC_MSG_CHECKING([for system page size])
+		if test "$ac_cv_have_decl_sysconf" = "yes";
+		then
+			AC_MSG_RESULT([determined by sysconf(3)])
+			ac_cv_swap_conv="(1048576/sysconf(_SC_PAGESIZE))"
+		else
+			AC_MSG_WARN([don't know. guessing 4096k])
+			ac_cv_swap_conv=256
+		fi
+	else
+		dnl
+		dnl the BSD spec returns values in blocks
+		dnl
+		AC_MSG_RESULT([blocks (assuming 512b)])
+		ac_cv_swap_conv=2048
+	fi
+	AC_DEFINE_UNQUOTED(SWAP_CONVERSION,$ac_cv_swap_conv,
+		[Conversion factor to MB])
+fi
+dnl
+dnl end tests for the swapctl system calls
+dnl
+
+
+if test "x$ac_cv_have_swap" != "x" 
+then
+	AC_DEFINE(HAVE_SWAP,1,[Define if swap/swapinfo command is found])
+	EXTRAS="$EXTRAS check_swap"
+fi
+if test "x$ac_cv_swap_command" != "x" 
+then
+	AC_DEFINE_UNQUOTED(SWAP_COMMAND,"$ac_cv_swap_command",
+		[Path to swap/swapinfo binary, with any args])
+	AC_DEFINE_UNQUOTED(SWAP_FORMAT,"$ac_cv_swap_format",
+		[Format string for parsing swap output])
+	AC_DEFINE_UNQUOTED(SWAP_CONVERSION,$ac_cv_swap_conv,
+		[Conversion factor to MB])
+fi
+
+AC_ARG_WITH(proc-meminfo,
+            ACX_HELP_STRING([--with-proc-meminfo=PATH],
+                            [path to /proc/meminfo or equivalent]),
+                            ac_cv_proc_meminfo=$withval)
+dnl dunno why this does not work below - use hack (kbd)
+dnl fine on linux, broken on solaris
+dnl if /bin/test -e "/proc/meminfo"
+AC_MSG_CHECKING([for /proc/meminfo])
+if test -n "$ac_cv_proc_meminfo"; then
+	AC_MSG_RESULT([(command line) $ac_cv_proc_meminfo])
+elif [cat /proc/meminfo > /dev/null 2>&1]; then
+	AC_MSG_RESULT([found /proc/meminfo])
+	ac_cv_proc_meminfo="/proc/meminfo"
+else
+	AC_MSG_RESULT([no])
+fi
+
+if test -n "$ac_cv_proc_meminfo"; then
+	AC_DEFINE(HAVE_PROC_MEMINFO,1,[Define if we have /proc/meminfo])
+	AC_DEFINE_UNQUOTED(PROC_MEMINFO,"$ac_cv_proc_meminfo",[path to /proc/meminfo if name changes])
+	EXTRAS="$EXTRAS check_swap"
+fi
+
+AC_PATH_PROG(PATH_TO_DIG,dig)
+AC_ARG_WITH(dig_command,
+            ACX_HELP_STRING([--with-dig-command=PATH],
+                            [Path to dig command]), PATH_TO_DIG=$withval)
+if test -n "$PATH_TO_DIG"; then
+	EXTRAS="$EXTRAS check_dig"
+	AC_DEFINE_UNQUOTED(PATH_TO_DIG,"$PATH_TO_DIG",[Path to dig command, if present])
+fi
+
+AC_PATH_PROG(PATH_TO_APTGET,apt-get)
+AC_ARG_WITH(apt-get_command,
+            ACX_HELP_STRING([--with-apt-get-command=PATH],
+                            [Path to apt-get command]), 
+                            with_apt_get_command=$withval,
+                            with_apt_get_command=$PATH_TO_APTGET)
+AC_DEFINE_UNQUOTED(PATH_TO_APTGET,"$PATH_TO_APTGET",[Path to apt-get command, if present])
+if test -n "$PATH_TO_APTGET" ; then
+	EXTRAS="$EXTRAS check_apt"
+fi
+
+
+if test -f plugins/check_nt.c ; then
+  EXTRAS="$EXTRAS check_nt"
+elif test -f ../plugins/check_nt.c ; then
+  EXTRAS="$EXTRAS check_nt"
+fi
+
+
+dnl used in check_dhcp
+AC_CHECK_HEADERS(sys/sockio.h)
+
+case $host in
+	*bsd*)
+		AC_DEFINE(__bsd__,1,[bsd specific code in check_dhcp.c])
+	;;
+	*linux*)
+		AC_DEFINE(__linux__,1,[sun specific code in check_dhcp.c])
+	;;
+	*sun* | solaris*)
+		AC_DEFINE(__sun__,1,[sun specific code in check_dhcp.c])
+	;;
+	*hpux*)  
+		AC_DEFINE(__hpux__,1,[hpux specific code in check_dhcp.c])
+	;;
+esac
+
+AC_SUBST(EXTRAS)
+AC_SUBST(EXTRAS_ROOT)
+AC_SUBST(EXTRA_NETOBJS)
+AC_SUBST(DEPLIBS)
+
+AM_GNU_GETTEXT([external], [need-ngettext])
+AM_GNU_GETTEXT_VERSION(0.15)
+
+dnl Check for Redhat spopen problem
+dnl Wierd problem where ECHILD is returned from a wait call in error
+dnl Only appears to affect nslookup and dig calls. Only affects redhat around
+dnl 2.6.9-11 (okay in 2.6.9-5). Redhat investigating root cause
+dnl We patch plugins/popen.c
+dnl Need to add smp because uname different on those
+dnl Can force patch to be applied with --enable-redhat-pthread-workaround
+AC_ARG_ENABLE(redhat-pthread-workaround, 
+	AC_HELP_STRING([--enable-redhat-pthread-workaround], 
+		[force Redhat patch to be applied (default: test system)]),
+	[ac_cv_enable_redhat_pthread_workaround=$enableval],
+	[ac_cv_enable_redhat_pthread_workaround=test])
+if test "$ac_cv_enable_redhat_pthread_workaround" = "test" ; then
+	if echo $ac_cv_uname_r | egrep "\.EL(smp)?$" >/dev/null 2>&1 ; then
+		AC_MSG_CHECKING(for redhat spopen problem)
+		( cd config_test && make && make test ) > /dev/null 2>&1
+		if test $? -eq 0 ; then
+			AC_MSG_RESULT(okay)
+		else
+			AC_MSG_RESULT(error)
+			AC_DEFINE(REDHAT_SPOPEN_ERROR, 1, [Workaround on redhat in spopen])
+		fi
+	fi
+elif test "$ac_cv_enable_redhat_pthread_workaround" = "yes" ; then
+	AC_DEFINE(REDHAT_SPOPEN_ERROR, 1, [Forced workaround on redhat in spopen])
+fi
+
+dnl Perl modules
+AC_ARG_ENABLE(perl-modules,
+	AC_HELP_STRING([--enable-perl-modules], 
+		[Enables installation of Nagios::Plugin and its dependencies (default: no)]),
+	[enable_perl_modules=$enableval],
+	[enable_perl_modules=no])
+if test "$enable_perl_modules" = "yes" ; then
+  AC_SUBST(PERLMODS_DIR,perlmods)
+fi
+
+dnl External libraries - see ACKNOWLEDGEMENTS
+gl_INIT
+
+dnl Some helpful common compile errors checked here
+if test "$ac_cv_uname_s" = 'SunOS' -a "$ac_cv_prog_ac_ct_AR" = 'false' ; then
+	AC_MSG_ERROR(No ar found for Solaris - is /usr/ccs/bin in PATH?)
+fi
+
+AC_OUTPUT(
+  Makefile 
+  lib/Makefile 
+  plugins/Makefile 
+  lib/tests/Makefile
+  plugins-root/Makefile
+  plugins-scripts/Makefile 
+  plugins-scripts/subst 
+  plugins-scripts/utils.pm 
+  plugins-scripts/utils.sh 
+  perlmods/Makefile
+  command.cfg 
+  test.pl 
+  pkg/solaris/pkginfo 
+  po/Makefile.in 
+)
+
+
+dnl the ones below that are commented out need to be cleaned up 
+dnl in the configure code above to use with_foo instead of ac_cv_foo
+dnl if we want them to show up here.  it'd also make the code cleaner.
+dnl i'll get to that on another rainy day :) -sf
+ACX_FEATURE([with],[apt-get-command])
+dnl ACX_FEATURE([with],[dig-command])
+dnl ACX_FEATURE([with],[fping-command])
+dnl ACX_FEATURE([with],[mailq-command])
+dnl ACX_FEATURE([with],[nslookup-command])
+ACX_FEATURE([with],[ping6-command])
+ACX_FEATURE([with],[ping-command])
+dnl ACX_FEATURE([with],[qstat-command])
+dnl ACX_FEATURE([with],[rpcinfo-command])
+dnl ACX_FEATURE([with],[smbclient-command])
+dnl ACX_FEATURE([with],[snmpget-command])
+dnl ACX_FEATURE([with],[snmpgetnext-command])
+dnl ACX_FEATURE([with],[ssh-command])
+dnl ACX_FEATURE([with],[uptime-command])
+
+dnl ACX_FEATURE([with],[proc-meminfo])
+dnl ACX_FEATURE([with],[ps-command])
+dnl ACX_FEATURE([with],[ps-format])
+dnl ACX_FEATURE([with],[ps-cols])
+dnl ACX_FEATURE([with],[ps-varlist])
+
+ACX_FEATURE([with],[ipv6])
+ACX_FEATURE([with],[mysql])
+ACX_FEATURE([with],[openssl])
+ACX_FEATURE([with],[gnutls])
+ACX_FEATURE([with],[perl])
+ACX_FEATURE([enable],[perl-modules])
+ACX_FEATURE([with],[cgiurl])
+ACX_FEATURE([with],[trusted-path])
+
+

@@ -1,0 +1,12 @@
+PKG="NAGplugin"
+NAME="nagios-plugins"
+DESC="Nagios network monitoring plugins"
+ARCH="@PKG_ARCH@"
+VERSION="@PACKAGE_VERSION@,REV=@REV_DATESTAMP@"
+CATEGORY="application"
+VENDOR="Nagios Plugin Development Team"
+EMAIL="nagiosplug-devel@lists.sourceforge.net"
+PSTAMP="nag@REV_TIMESTAMP@"
+BASEDIR="/"
+CLASSES="none"
+

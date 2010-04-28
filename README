@@ -1,0 +1,110 @@
+Nagios Plugins README
+---------------------
+
+* For instructions on installing these plugins for use with Nagios,
+  see below. In addition, generic instructions for the GNU toolchain
+  can be found in the INSTALL file.
+
+* For major changes between releases, read the NEWS file.
+
+* For information on detailed changes that have been made or plugins 
+  that have been added, read the Changelog file.
+
+* Some plugins require that you have additional programs and/or
+  libraries installed on your system before they can be used.  Plugins
+  that are dependent on other programs/libraries that are missing are
+  usually not compiled. Read the REQUIREMENTS file for more information.
+
+* For a list of outstanding bugs for this release, see the BUGS file.
+
+* Individual plugins are self documenting.  All plugins that comply with
+  the basic guidelines for development will provide detailed help when
+  invoked with the '-h' or '--help' options.
+
+* The file command.cfg contains example configurations for many of the
+  plugins
+
+* The win32 subdir contains plugins specific to the Win32 platform. 
+  These are scripts or binaries.
+
+You can check for the latest plugins at:
+  http://sourceforge.net/projects/nagiosplug/
+
+Send mail to nagiosplug-help@lists.sourceforge.net for assistance.  Please
+include the OS type and version that you are using.  Also, run the plugin with
+the '-vvv' option and provide the resulting version information.  Of course, 
+there may be additional diagnostic information required as well.  Use good
+judgment.
+
+Send mail to nagiosplug-devel@lists.sourceforge.net for developer discussions.
+
+For patch submissions and bug reports, please use the appropriate resources at
+http://sourceforge.net/projects/nagiosplug/ (navigate to the bug tool and/or
+patch tool from the summary page).  Patches should be relative to the current
+CVS head (development), or to the head of the current stable branch. Also, 
+please include version information for your OS and the plugin(s) your are 
+patching/reporting.
+
+
+
+
+Nagios Plugins Quick-and-Dirty Installation Instructions
+--------------------------------------------------------
+
+0) If you are using the CVS tree, you will need m4, gettext, automake, and autoconf. 
+   To start out, run ./tools/setup
+
+   For more detail, see the developer guidelines at 
+   http://nagiosplug.sourceforge.net/developer-guidelines.html.
+
+
+1) Run the configure script to initialize variables and create a Makefile, etc.
+
+	./configure --prefix=BASEDIRECTORY --with-cgiurl=SOMEURL
+
+   a) Replace BASEDIRECTORY with the path of the directory under which Nagios
+      is installed (default is '/usr/local/nagios')
+   b) Replace CGIURL with the path used to access the Nagios CGIs with
+      a web browser (default is '/nagios/cgi-bin')
+
+
+2) Compile the plugins with the following command:
+
+	make
+
+
+3) Install the compiled plugins and plugin scripts with the following command:
+
+	make install
+
+   The installation procedure will attempt to place the plugins in a 
+   'libexec/' subdirectory in the base directory you specified with
+   the --prefix argument to the configure script.
+
+4) There are some plugins that require setuid. If you run make install as 
+   a non root user, they will not be installed. To install, switch to root and 
+   run:
+
+	make install-root
+
+5) Verify that your host configuration file (hosts.cfg) for Nagios contains
+   the correct paths to the new plugins.
+
+
+
+That's it! If you have any problems or questions, feel free send mail
+to nagiosplug-help@lists.sourceforge.net
+
+
+
+LICENSE STUFF
+-------------
+
+This software is released under the GNU Public License with the additional
+exemption that compiling, linking and/or using OpenSSL is allowed.
+
+See the COPYING file for the complete GPL text. 
+
+
+--
+Nagios Plugins Team
