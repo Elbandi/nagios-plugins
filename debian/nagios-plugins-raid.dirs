@@ -1,0 +1,3 @@
+usr/lib/nagios/plugins
+etc/nagios-plugins/config
+usr/share/nagios-plugins/templates-raid

@@ -1,0 +1,32 @@
+#!/bin/sh -e
+
+. /usr/share/nagios-plugins/dpkg/functions
+templdir=/usr/share/nagios-plugins/templates-raid
+
+if [ "$1" = "configure" ]; then
+	register_cfgs $2
+
+	grep '## BEGIN: NAGIOS_CHECK_RAID SUDO' /etc/sudoers > /dev/null || cat >>/etc/sudoers <<EOF 
+## BEGIN: NAGIOS_CHECK_RAID SUDO
+#Add by NAGIOS_CHECK_RAID installation script
+User_Alias CHECK_RAID=nagios
+CHECK_RAID ALL=(root) NOPASSWD: /usr/sbin/mpt-status -s
+CHECK_RAID ALL=(root) NOPASSWD: /bin/cat /proc/megaide/0/status
+CHECK_RAID ALL=(root) NOPASSWD: /bin/cat /proc/megaide/1/status
+CHECK_RAID ALL=(root) NOPASSWD: /usr/sbin/cciss_vol_status /dev/cciss/c*d0
+## END: NAGIOS_CHECK_RAID SUDO 
+EOF
+
+#this need the correct filename and path!!!
+#CHECK_RAID ALL=(root) NOPASSWD: $aaccli container list /full
+#CHECK_RAID ALL=(root) NOPASSWD: $tw_cli info*
+#CHECK_RAID ALL=(root) NOPASSWD: $arcconf GETCONFIG 1 *
+#CHECK_RAID ALL=(root) NOPASSWD: $megarc -AllAdpInfo -nolog
+#CHECK_RAID ALL=(root) NOPASSWD: $megarc -dispCfg -a* -nolog
+#CHECK_RAID ALL=(root) NOPASSWD: $cmdtool2 -AdpAllInfo -aALL -nolog
+#CHECK_RAID ALL=(root) NOPASSWD: $cmdtool2 -CfgDsply -a* -nolog
+#CHECK_RAID ALL=(root) NOPASSWD: $megacli -PDList -aALL -NoLog
+
+fi
+
+#DEBHELPER#

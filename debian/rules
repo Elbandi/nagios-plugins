@@ -25,6 +25,8 @@ NP_STD_DIR:=$(DEBIANDIR)/nagios-plugins-standard
 NP_STD_TEMPLATES:=$(NP_STD_DIR)/usr/share/nagios-plugins/templates-standard
 NP_EXTRAS_DIR:=$(DEBIANDIR)/nagios-plugins-extra
 NP_EXTRA_TEMPLATES:=$(NP_STD_DIR)/usr/share/nagios-plugins/templates-extras
+NP_RAID_DIR:=$(DEBIANDIR)/nagios-plugins-raid
+NP_RAID_TEMPLATES:=$(NP_RAID_DIR)/usr/share/nagios-plugins/templates-raid
 
 std_plugins:=check_breeze check_ifoperstatus check_hpjd check_ifstatus \
 	check_rpc check_snmp check_wave \
@@ -32,11 +34,13 @@ std_plugins:=check_breeze check_ifoperstatus check_hpjd check_ifstatus \
 	check_disk_smb check_ldap check_ldaps \
 	check_dns check_dig check_flexlm check_oracle
 extra_plugins:=check_fping check_game
+raid_plugins:=check_raid
 basic_plugin_cfgs:=apt dhcp disk dummy ftp http load mail news ntp ping procs \
 	real ssh tcp_udp telnet users
 std_plugin_cfgs:=breeze disk-smb dns flexlm hppjd ifstatus ldap \
 	mrtg mysql netware nt pgsql radius rpc-nfs snmp vsz
 extra_plugins_cfgs:=fping games
+raid_plugin_cfgs:=raid
 
 PATH = /bin:/sbin:/usr/bin:/usr/sbin
 
@@ -122,7 +126,7 @@ really-clean:
 	-rm -f platform.h auto-include.h
 	find -type d -name build -print0 | xargs -0 -r rm -rf \;
 	find \( -name config.sub -o -name config.guess \) -print0 | xargs -0 -r rm -f \;
-	-rm -f $(DEBIANDIR)/nagios-plugins-basic.postrm $(DEBIANDIR)/nagios-plugins-standard.postrm $(DEBIANDIR)/nagios-plugins-extras.postrm
+	-rm -f $(DEBIANDIR)/nagios-plugins-basic.postrm $(DEBIANDIR)/nagios-plugins-standard.postrm $(DEBIANDIR)/nagios-plugins-extras.postrm $(DEBIANDIR)/nagios-plugins-raid.postrm
 	dh_clean 
 
 install: build
@@ -141,6 +145,9 @@ install: build
 	for p in ${extra_plugins}; do \
 		mv ${NP_BASIC_DIR}/${NP_LIBEXEC}/$$p ${NP_EXTRAS_DIR}/${NP_LIBEXEC}; \
 	done
+	for p in ${raid_plugins}; do \
+		mv ${NP_BASIC_DIR}/${NP_LIBEXEC}/$$p ${NP_RAID_DIR}/${NP_LIBEXEC}; \
+	done
 	# now do the same for their configs, copying them into seperate
 	# "template" directories outside of /usr/share/doc for ucf to use.
 	for c in ${basic_plugin_cfgs}; do \
@@ -151,6 +158,9 @@ install: build
 	done
 	for c in ${extra_plugins_cfgs}; do \
 		cp $(DEBIANDIR)/pluginconfig/$${c}.cfg ${NP_EXTRA_TEMPLATES}; \
+	done
+	for c in ${raid_plugin_cfgs}; do \
+		cp $(DEBIANDIR)/pluginconfig/$${c}.cfg ${NP_RAID_TEMPLATES}; \
 	done
 
 	# install check_bgpstate from contrib
@@ -163,6 +173,9 @@ install: build
 	sed -e 's/@STD_PLUGINS@/${std_plugin_cfgs}/' \
 		< $(DEBIANDIR)/nagios-plugins-standard.postrm.in \
 		> $(DEBIANDIR)/nagios-plugins-standard.postrm
+	sed -e 's/@RAID_PLUGINS@/${raid_plugin_cfgs}/' \
+		< $(DEBIANDIR)/nagios-plugins-raid.postrm.in \
+		> $(DEBIANDIR)/nagios-plugins-raid.postrm
 	# copy our dpkg-sourced functions etc into place
 	mkdir -p ${NP_BASIC_DIR}/usr/share/nagios-plugins/dpkg
 	install -t ${NP_BASIC_DIR}/usr/share/nagios-plugins/dpkg \

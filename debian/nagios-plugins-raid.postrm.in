@@ -1,0 +1,19 @@
+#!/bin/sh -e
+
+RAID_PLUGINS="@RAID_PLUGINS@"
+
+if [ "$1" = "purge" ]; then
+	if which ucf >/dev/null 2>&1; then
+		have_ucf="yes"
+	fi
+	for f in $RAID_PLUGINS; do
+		rm -f /etc/nagios-plugins/config/${f}.cfg
+		if [ "$have_ucf" = "yes" ]; then
+			ucf --purge /etc/nagios-plugins/config/${f}.cfg
+		fi
+	done 
+
+	sed -i '/## BEGIN: NAGIOS_CHECK_RAID SUDO/{:z;h;N;/## END: NAGIOS_CHECK_RAID SUDO/ !b z;x;d}' /etc/sudoers
+fi
+
+#DEBHELPER#

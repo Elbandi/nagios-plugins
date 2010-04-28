@@ -99,3 +99,32 @@ Description: Plugins for the nagios network monitoring and manegement system.
  .
  This package provides the suite of plugins that provide extra functionality
  to be useful on a central nagios host.
+
+Package: nagios-plugins-raid
+Architecture: any
+Conflicts: nagios-plugins (<= 1.4.2-3)
+Depends: ${shlibs:Depends}, ${misc:Depends}, nagios-plugins-basic (>= 1.4.5-2)
+Suggests: nagios2 | nagios-text | nagios, mpt-status, cciss-vol-status
+Description: Plugins for the nagios network monitoring and manegement system.
+ Nagios is a host/service/network monitoring and management system. It has
+ the following features:
+ .
+  o  Monitoring of network services (via TCP port, SMTP, POP3, HTTP, NNTP,
+     PING, etc.)
+  o  Plugin interface to allow for user-developed service checks
+  o  Contact notifications when problems occur and get resolved (via email,
+     pager, or user-defined method)
+  o  Ability to define event handlers to be run during service or host events
+     (for proactive problem resolution)
+  o  Web output (current status, notifications, history, log file, etc.)
+ .
+ This package provides the suite of plugins that chekcs all RAID volumes
+ (hardware and software) that can be identified.
+ .
+  Supports:
+  - Linux, Solaris and AIX software RAID
+  - Linux MegaIDE/IPS/Serveraid/MPT/LSI/GDTH/I2O hardware RAID controllers.
+  - 3ware SATA RAID
+  - Adaptec AAC RAID
+  - LSI MegaRaid
+  - HP/Compaq Smart Array
