@@ -1,13 +1,12 @@
-#!/usr/local/bin/perl
+#!/usr/bin/perl
 # author: Al Tobey <albert.tobey@priority-health.com>
 # what:    monitor diskspace using the host-resources mib
 # license: GPL - http://www.fsf.org/licenses/gpl.txt
-#
-# Todo:
 
 use strict;
 require 5.6.0;
-use lib qw( /opt/nagios/libexec );
+#use lib qw( /opt/nagios/libexec );
+use lib qw( /usr/lib64/nagios/plugins );
 use utils qw(%ERRORS $TIMEOUT &print_revision &support &usage);
 use SNMP 5.0;
 use Getopt::Long;
@@ -18,8 +17,8 @@ $opt_verbose   = undef;
 $opt_host      = undef;
 $opt_community = 'public';
 $opt_command   = undef;
-$opt_warning   = 99;
-$opt_critical  = 100;
+$opt_warning   = 80;
+$opt_critical  = 95;
 $opt_port      = 161;
 $opt_stats     = undef;
 $message       = undef;
@@ -27,7 +26,8 @@ $exit          = 'OK';
 %mounts        = ();
 
 sub process_options {
-    my( $opt_crit, $opt_warn ) = ();
+    our( $opt_critical, $opt_warning ) = ();
+    
     Getopt::Long::Configure( 'bundling' );
     GetOptions(
         'V'     => \$opt_version,       'version'     => \$opt_version,
@@ -37,8 +37,8 @@ sub process_options {
         'H:s'   => \$opt_host,          'hostname:s'  => \$opt_host,
         'p:i'   => \$opt_port,          'port:i'      => \$opt_port,
         'C:s'   => \$opt_community,     'community:s' => \$opt_community,
-        'c:i'   => \$opt_crit,          'critical:i'  => \$opt_crit,
-        'w:i'   => \$opt_warn,          'warning:i'   => \$opt_warn,
+        'c:i'   => \$opt_critical,      'critical:i'  => \$opt_critical,
+        'w:i'   => \$opt_warning,       'warning:i'   => \$opt_warning,
         't:i'   => \$TIMEOUT,           'timeout:i'   => \$TIMEOUT,    
         'm:s'   => \$opt_mountpoint,    'mountpoint:s'=> \$opt_mountpoint
     );
@@ -52,7 +52,7 @@ sub process_options {
 }
 
 sub local_print_revision {
-        print_revision( $PROGNAME, '$Revision: 82 $ ' )
+        print_revision( $PROGNAME, '1.3 ' )
 }
 
 sub print_usage {
@@ -76,9 +76,9 @@ sub print_help {
 -m, --mountpoint=MOUNTPOINT
    a mountpoint, or a comma delimited list of mountpoints
 -w, --warning=INTEGER
-   percent of disk used to generate WARNING state (Default: 99)
+   percent of disk used to generate WARNING state (Default: 80)
 -c, --critical=INTEGER
-   percent of disk used to generate CRITICAL state (Default: 100)
+   percent of disk used to generate CRITICAL state (Default: 95)
 -s, --statistics
    output statistics in Nagios format
 EOT
